@@ -40,9 +40,10 @@ def load_words():
     with open(CWD/DATA/DICT) as infile:
         word_list = infile.read().splitlines()
 
-    word_set = set(word_list)
+    ## word_set = set(word_list)
 
-    return word_list, word_set
+    ## return word_list, word_set
+    return word_list
 
 
 def calc_word_value(word):
@@ -52,8 +53,16 @@ def calc_word_value(word):
 
 def max_word_value(words):
     """Given a list of words calculate the word with the maximum value and return it"""
-    return max(calc_word_value(word) for word in words)
+    # Not the value but the word itself:
+    ## return max(calc_word_value(word) for word in words)
+    '''
+    # OK
+    res = {calc_word_value(word): word for word in words}
+    return res[max(res.keys())]
+    '''
+    # Better:
+    return max(words, key=calc_word_value)
 
 if __name__ == '__main__':
     get_dict()
-    word_list, word_set = load_words()
+    ## word_list, word_set = load_words()
