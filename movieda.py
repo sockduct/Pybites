@@ -4,8 +4,8 @@ import csv
 from collections import defaultdict, namedtuple
 import os
 from pathlib import Path
-from pprint import pprint
-import tempfile
+from pprint import pformat, pprint
+from statistics import mean
 from urllib.request import urlretrieve
 
 
@@ -51,19 +51,15 @@ def get_movies_by_director():
     movies_by_dir = defaultdict(list)
     # Note:  Movie titles contain NBSPs (\xa0) - may want to convert these to
     #        spaces...
-    count = 0
     with open(MOVIE_DATA, encoding='utf8') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            count += 1
             if all(
                 row[val] for val in ('director_name', 'movie_title', 'title_year', 'imdb_score')
             ) and int(row['title_year']) >= 1960:
                 movies_by_dir[row['director_name']].append(
                     Movie(row['movie_title'], int(row['title_year']), float(row['imdb_score']))
                 )
-            if count == 3:
-                pprint(movies_by_dir)
 
     return movies_by_dir
 
@@ -71,7 +67,7 @@ def get_movies_by_director():
 def calc_mean_score(movies):
     """Helper method to calculate mean of list of Movie namedtuples,
        round the mean to 1 decimal place"""
-    pass
+    return round(mean(movie.score for movie in movies), 1)
 
 
 def get_average_scores(directors):
@@ -79,8 +75,15 @@ def get_average_scores(directors):
        return a list of tuples (director, average_score) ordered by highest
        score in descending order. Only take directors into account
        with >= MIN_MOVIES"""
-    pass
+    res = [(director, calc_mean_score(movies)) for director, movies in directors.items()]
+    res.sort(key=lambda item: item[1], reverse=True)
+
+    return res
+
 
 if __name__ == '__main__':
     get_data()
-    get_movies_by_director()
+    dirinfo = get_movies_by_director()
+    count = 0
+    res = pformat(get_average_scores(dirinfo))
+    pprint(res.splitlines()[:20])
