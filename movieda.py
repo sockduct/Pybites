@@ -2,6 +2,7 @@
 
 import csv
 from collections import defaultdict, namedtuple
+import json
 import os
 from pathlib import Path
 from pprint import pformat, pprint
@@ -49,16 +50,15 @@ def get_movies_by_director():
     where keys are directors, and values are a list of movies,
     use the defined Movie namedtuple"""
     movies_by_dir = defaultdict(list)
-    # Note:  Movie titles contain NBSPs (\xa0) - may want to convert these to
-    #        spaces...
     with open(MOVIE_DATA, encoding='utf8') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             if all(
                 row[val] for val in ('director_name', 'movie_title', 'title_year', 'imdb_score')
-            ) and int(row['title_year']) >= 1960:
+            ) and int(row['title_year']) >= MIN_YEAR:
+                movie_title = row['movie_title'].rstrip('\xa0')
                 movies_by_dir[row['director_name']].append(
-                    Movie(row['movie_title'], int(row['title_year']), float(row['imdb_score']))
+                    Movie(movie_title, int(row['title_year']), float(row['imdb_score']))
                 )
 
     return movies_by_dir
@@ -75,15 +75,26 @@ def get_average_scores(directors):
        return a list of tuples (director, average_score) ordered by highest
        score in descending order. Only take directors into account
        with >= MIN_MOVIES"""
-    res = [(director, calc_mean_score(movies)) for director, movies in directors.items()]
-    res.sort(key=lambda item: item[1], reverse=True)
-
-    return res
+    res = [
+        (director, calc_mean_score(movies))
+        for director, movies in directors.items()
+        if len(movies) >= MIN_MOVIES
+    ]
+    # Better to use sorted - then don't need a variable:
+    ## res.sort(key=lambda item: item[1], reverse=True)
+    return sorted(res, key=lambda item: item[1], reverse=True)
 
 
 if __name__ == '__main__':
     get_data()
     dirinfo = get_movies_by_director()
+    with open(CWD/'dirinfo.json', mode='wt') as outfile:
+        json.dump(dirinfo, outfile)
+
+    dirscores = get_average_scores(dirinfo)
+    with open(CWD/'dirscores.json', mode='wt') as outfile:
+        json.dump(dirscores, outfile)
+
     count = 0
-    res = pformat(get_average_scores(dirinfo))
+    res = pformat(dirscores)
     pprint(res.splitlines()[:20])
