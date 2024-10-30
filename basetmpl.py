@@ -2,29 +2,25 @@
 
 
 from pathlib import Path
-import tempfile
 
 
 # Global Constants:
 CWD = Path(__file__).parent
-TMPDIR = tempfile.TemporaryDirectory()
-DATA = ...
+DATADIR = 'data'
+DATAFILE = ...
 
 
 # Module
 def get_data():
-    # Throw away:
-    ## data_dir = TMPDIR
     # Retain:
-    data_dir = CWD/'data'
-    data_file = data_dir/DATA
+    DATA = DATADIR/DATAFILE
 
-    if not data_dir.exists():
-        data_dir.mkdir()
+    if not DATADIR.exists():
+        DATADIR.mkdir()
 
-    if not data_file.exists():
-        print(f'Retrieving data and saving to {data_file}.')
-        # Retrieve data_file:
+    if not DATA.exists():
+        print(f'Retrieving data and saving to {DATA}.')
+        # Retrieve DATA:
         ...
     else:
-        print(f'{data_file} already present.')
+        print(f'{DATA} already present.')
