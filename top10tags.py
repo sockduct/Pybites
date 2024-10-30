@@ -35,9 +35,7 @@ def get_pybites_top_tags(n=10):
        data already loaded into the content variable"""
     tree = ET.parse(DATADIR/DATAFILE)
     root = tree.getroot()
-    categories = Counter(node.text.lower() for node in root.findall('./channel/item/category'))
-
-    return categories.most_common(n)
+    return Counter(node.text.lower() for node in root.findall('.//category')).most_common(n)
 
 
 if __name__ == '__main__':
