@@ -6,15 +6,13 @@ from pathlib import Path
 
 # Global Constants:
 CWD = Path(__file__).parent
-DATADIR = 'data'
+DATADIR = CWD/'data'
 DATAFILE = ...
+DATA = DATADIR/DATAFILE
 
 
 # Module
 def get_data():
-    # Retain:
-    DATA = DATADIR/DATAFILE
-
     if not DATADIR.exists():
         DATADIR.mkdir()
 
