@@ -16,7 +16,7 @@ DATAFILE = 'feed.xml'
 
 
 # Module
-def get_data():
+def get_data() -> None:
     data_loc = DATADIR/DATAFILE
 
     if not DATADIR.exists():
@@ -30,12 +30,14 @@ def get_data():
         print(f'{data_loc} already present.')
 
 
-def get_pybites_top_tags(n=10):
+def get_pybites_top_tags(n: int=10) -> list[tuple[str, int]]:
     """use Counter to get the top 10 PyBites tags from the feed
        data already loaded into the content variable"""
     tree = ET.parse(DATADIR/DATAFILE)
     root = tree.getroot()
-    return Counter(node.text.lower() for node in root.findall('.//category')).most_common(n)
+    return Counter(
+        node.text.lower() for node in root.findall('.//category') if node.text
+    ).most_common(n)
 
 
 if __name__ == '__main__':

@@ -20,7 +20,7 @@ LETTER_SCORES = {letter: score for score, letters in scrabble_scores
 
 # start coding
 
-def get_dict():
+def get_dict() -> None:
     # DICTIONARY = os.path.join(TMP, DICT)
     # dictionary = Path(TMP)/DICT
     dictionary_dir = CWD/DATA
@@ -35,7 +35,7 @@ def get_dict():
     else:
         print(f'{dictionary_file} already present.')
 
-def load_words():
+def load_words() -> list[str]:
     """Load the words dictionary (DICTIONARY constant) into a list and return it"""
     with open(CWD/DATA/DICT) as infile:
         word_list = infile.read().splitlines()
@@ -46,12 +46,12 @@ def load_words():
     return word_list
 
 
-def calc_word_value(word):
+def calc_word_value(word: str) -> int:
     """Given a word calculate its value using the LETTER_SCORES dict"""
     return sum(LETTER_SCORES.get(letter.upper(), 0) for letter in word)
 
 
-def max_word_value(words):
+def max_word_value(words: list[str]) -> str:
     """Given a list of words calculate the word with the maximum value and return it"""
     # Not the value but the word itself:
     ## return max(calc_word_value(word) for word in words)

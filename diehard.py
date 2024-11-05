@@ -3,6 +3,7 @@
 
 from collections import Counter, namedtuple
 from pathlib import Path
+from typing import NamedTuple, Iterator
 import urllib.request
 
 
@@ -14,11 +15,13 @@ DATA = CWD/DATADIR/DATAFILE
 
 
 IGNORE = ['static', 'templates', 'data', 'pybites', 'bbelderbos', 'hobojoe1848']
-Stats = namedtuple('Stats', 'user challenge')
+class Stats(NamedTuple):
+    user: str
+    challenge: str
 
 
 # Module
-def get_data():
+def get_data() -> None:
     if not DATADIR.exists():
         DATADIR.mkdir()
 
@@ -33,7 +36,7 @@ def get_data():
         print(f'{DATA} already present.')
 
 
-def gen_files(tempfile=DATA):
+def gen_files(tempfile: Path=DATA) -> Iterator[str]:
     """
     Parse the tempfile passed in, filtering out directory names
     (first column) using the last "is_dir" column.
@@ -61,7 +64,7 @@ def gen_files(tempfile=DATA):
                 yield data.lower()
 
 
-def diehard_pybites(files=None):
+def diehard_pybites(files: list[str]|None=None):
     """
     Return a Stats namedtuple (defined above) that contains:
     1. the user that made the most pull requests (ignoring the users in IGNORE), and
@@ -75,10 +78,14 @@ def diehard_pybites(files=None):
     if files is None:
         files = gen_files()
 
-    users = Counter()
-    popular_challenges = Counter()
+    ucstats = [Stats((res := item.split('/')).reverse()) for item in files]
+    users = Counter(user.user for user in ucstats)
+    popular_challenges = Counter(challenge.challenge for challenge in ucstats)
+
+    print(f'{users=}, {popular_challenges=}')
 
 
 if __name__ == '__main__':
     get_data()
-    print(list(gen_files()))
+    # print(list(gen_files()))
+    diehard_pybites()

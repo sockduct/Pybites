@@ -7,12 +7,12 @@ from pathlib import Path
 # Global Constants:
 CWD = Path(__file__).parent
 DATADIR = CWD/'data'
-DATAFILE = ...
+DATAFILE = '<file>'
 DATA = DATADIR/DATAFILE
 
 
 # Module
-def get_data():
+def get_data() -> None:
     if not DATADIR.exists():
         DATADIR.mkdir()
 

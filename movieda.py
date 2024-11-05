@@ -1,12 +1,13 @@
 #! /usr/bin/env python3
 
 import csv
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 import json
 import os
 from pathlib import Path
 from pprint import pformat, pprint
 from statistics import mean
+from typing import NamedTuple
 from urllib.request import urlretrieve
 
 
@@ -25,11 +26,14 @@ MOVIE_DATA = LOCAL
 MIN_MOVIES = 4
 MIN_YEAR = 1960
 
-Movie = namedtuple('Movie', 'title year score')
+class Movie(NamedTuple):
+    title: str
+    year: int
+    score: float
 
 
 # Module
-def get_data(remote: str=REMOTE, local: str=LOCAL):
+def get_data(remote: str=REMOTE, local: Path=LOCAL) -> None:
     data_dir = TMP
     data_file = data_dir/FNAME
 
@@ -45,7 +49,7 @@ def get_data(remote: str=REMOTE, local: str=LOCAL):
         print(f'{data_file} already present.')
 
 
-def get_movies_by_director():
+def get_movies_by_director() -> defaultdict[str, list[Movie]]:
     """Extracts all movies from csv and stores them in a dict,
     where keys are directors, and values are a list of movies,
     use the defined Movie namedtuple"""
@@ -64,13 +68,14 @@ def get_movies_by_director():
     return movies_by_dir
 
 
-def calc_mean_score(movies):
+def calc_mean_score(movies: list[Movie]) -> float:
     """Helper method to calculate mean of list of Movie namedtuples,
        round the mean to 1 decimal place"""
     return round(mean(movie.score for movie in movies), 1)
 
 
-def get_average_scores(directors):
+def get_average_scores(directors: defaultdict[str, list[Movie]]
+                       ) -> list[tuple[str, float]]:
     """Iterate through the directors dict (returned by get_movies_by_director),
        return a list of tuples (director, average_score) ordered by highest
        score in descending order. Only take directors into account
