@@ -60,11 +60,16 @@ def gen_files(tempfile: Path=DATA) -> Iterator[str]:
     with open(tempfile) as infile:
         for line in infile:
             data, flag = line.strip().split(',')
-            if flag := booldict[flag.title()]:
+            if booldict[flag.title()]:
                 yield data.lower()
 
 
-def diehard_pybites(files: list[str]|None=None):
+def splitrev(word: str) -> tuple[str, str]:
+    res = word.split('/')
+    return res[1], res[0]
+
+
+def diehard_pybites(files: Iterator[str]|None=None) -> tuple[Stats, tuple[str, int]]:
     """
     Return a Stats namedtuple (defined above) that contains:
     1. the user that made the most pull requests (ignoring the users in IGNORE), and
@@ -78,14 +83,15 @@ def diehard_pybites(files: list[str]|None=None):
     if files is None:
         files = gen_files()
 
-    ucstats = [Stats((res := item.split('/')).reverse()) for item in files]
-    users = Counter(user.user for user in ucstats)
-    popular_challenges = Counter(challenge.challenge for challenge in ucstats)
+    ucstats = [Stats(*splitrev(item)) for item in files]
+    top_user = Counter(user.user for user in ucstats if user.user not in IGNORE).most_common(1)
+    userstat = [user for user in ucstats if user.user == top_user[0][0]][0]
+    top_challenge = Counter(challenge.challenge for challenge in ucstats).most_common(1)
 
-    print(f'{users=}, {popular_challenges=}')
+    return userstat, top_challenge[0]
 
 
 if __name__ == '__main__':
     get_data()
     # print(list(gen_files()))
-    diehard_pybites()
+    print(diehard_pybites())
