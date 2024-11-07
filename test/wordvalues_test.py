@@ -1,3 +1,8 @@
+from pathlib import Path
+import sys
+
+sys.path.append(str(Path(__file__).parent.parent))
+
 from wordvalues import load_words, calc_word_value, max_word_value
 
 words = load_words()

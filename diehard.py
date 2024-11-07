@@ -3,7 +3,8 @@
 
 from collections import Counter, namedtuple
 from pathlib import Path
-from typing import NamedTuple, Iterator
+from pprint import pformat
+from typing import Any, NamedTuple, Iterable, Iterator
 import urllib.request
 
 
@@ -17,7 +18,7 @@ DATA = CWD/DATADIR/DATAFILE
 IGNORE = ['static', 'templates', 'data', 'pybites', 'bbelderbos', 'hobojoe1848']
 class Stats(NamedTuple):
     user: str
-    challenge: str
+    challenge: Any  # Couldn't find a more specific yet generic type
 
 
 # Module
@@ -69,7 +70,7 @@ def splitrev(word: str) -> tuple[str, str]:
     return res[1], res[0]
 
 
-def diehard_pybites(files: Iterator[str]|None=None) -> tuple[Stats, tuple[str, int]]:
+def diehard_pybites(files: Iterable[str]|None=None) -> Stats:
     """
     Return a Stats namedtuple (defined above) that contains:
     1. the user that made the most pull requests (ignoring the users in IGNORE), and
@@ -84,11 +85,18 @@ def diehard_pybites(files: Iterator[str]|None=None) -> tuple[Stats, tuple[str, i
         files = gen_files()
 
     ucstats = [Stats(*splitrev(item)) for item in files]
-    top_user = Counter(user.user for user in ucstats if user.user not in IGNORE).most_common(1)
-    userstat = [user for user in ucstats if user.user == top_user[0][0]][0]
-    top_challenge = Counter(challenge.challenge for challenge in ucstats).most_common(1)
+    users = Counter(user.user for user in ucstats if user.user not in IGNORE)
+    challenges = Counter(
+        challenge.challenge for challenge in ucstats if challenge.user not in IGNORE
+    )
 
-    return userstat, top_challenge[0]
+    # Debugging:
+    print(f'Users:\n{pformat(users)}\n\nChallenges:\n{pformat(challenges)}\n')
+
+    top_user = users.most_common(1)
+    top_challenge = challenges.most_common(1)
+
+    return Stats(top_user[0][0], top_challenge[0])
 
 
 if __name__ == '__main__':
