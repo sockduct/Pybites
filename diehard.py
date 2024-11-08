@@ -63,6 +63,12 @@ def gen_files(tempfile: Path=DATA) -> Iterator[str]:
             data, flag = line.strip().split(',')
             if booldict[flag.title()]:
                 yield data.lower()
+        '''
+        Alternatively using a generator expression:
+        return (line.split(',')[0].lower()
+                for line in f.readlines()
+                if line.strip().endswith('True'))
+        '''
 
 
 def splitrev(word: str) -> tuple[str, str]:
@@ -95,6 +101,25 @@ def diehard_pybites(files: Iterable[str]|None=None) -> Stats:
 
     top_user = users.most_common(1)
     top_challenge = challenges.most_common(1)
+
+    '''
+    Simple alternative:
+    users = Counter()
+    popular_challenges = Counter()
+
+    for dir_ in files:
+        ch, user = dir_.split('/')
+
+        if user in IGNORE:
+            continue
+
+        users[user] += 1
+        popular_challenges[ch] += 1
+
+    user = users.most_common(1)[0][0]
+    challenge = popular_challenges.most_common(1)[0]
+    return Stats(user=user, challenge=challenge)
+    '''
 
     return Stats(top_user[0][0], top_challenge[0])
 
