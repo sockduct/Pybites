@@ -44,8 +44,7 @@ def get_all_hashtags_and_links(tweet: str=TWEET) -> list[str]:
     pattern2 = r'#[^\W\d_]\w*\b'
     res = []
 
-    res.extend(re.findall(pattern1, tweet))
-    res.extend(re.findall(pattern2, tweet, re.UNICODE))
+    res.extend(re.findall(f'(?:{pattern1})|(?:{pattern2})', tweet, re.UNICODE))
 
     return res
 
@@ -56,12 +55,12 @@ def match_first_paragraph(html: str=HTML) -> str:
        'pybites != greedy' (= content of first paragraph).
        Return this string.
     """
-    pattern = r'<[pP]>(.*(?!=</[pP]>))</[pP]>'
+    pattern = r'<[pP]>(.*?)</[pP]>'
     res = re.search(pattern, html, re.UNICODE)
     return res[1] if res else ''
 
 
 if __name__ == '__main__':
     print(f'extract_course_times:\n{extract_course_times()}')
-    print(f'get_all_hashtags_and_links:\n{get_all_hashtags_and_links()}')
-    print(f'match_first_paragraph:\n{match_first_paragraph()}')
+    print(f'\nget_all_hashtags_and_links:\n{get_all_hashtags_and_links()}')
+    print(f'\nmatch_first_paragraph:\n{match_first_paragraph()}')
