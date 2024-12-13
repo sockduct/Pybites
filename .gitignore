@@ -169,3 +169,6 @@ data/
 
 # JSON data files:
 *.json
+
+# Specific code to ignore:
+infile.py
