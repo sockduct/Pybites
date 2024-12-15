@@ -30,8 +30,6 @@ urllib.request.urlretrieve(
 )
 '''
 
-stopwords_file = os.path.join(tmp, 'stopwords')
-harry_text = os.path.join(tmp, 'harry')
 
 # Module
 def get_data(datafile: str|None=DATA, datadir: Path=DATADIR, url: str=URL) -> None:
@@ -58,13 +56,7 @@ def get_words(file: str|Path) -> list[str]:
         return list(infile.read().split())
 
 
-def get_harry_most_common_word(stop_words_file: str|Path=stopwords_file,
-                               harry_file: str|Path=harry_text) -> tuple[str, int]:
-    # file = DATA if 'DATA' in globals() else TEMPFILE
-
-    stop_words = get_words(stop_words_file)
-    harry = get_words(harry_file)
-
+def process_words(stop_words: list[str], harry: list[str]) -> list[str]:
     # Approach one - strip out non-alphanumeric characters:
     nonalphanum = string.punctuation + string.whitespace
 
@@ -79,6 +71,21 @@ def get_harry_most_common_word(stop_words_file: str|Path=stopwords_file,
         if word and word not in stop_words:
             candidates.append(word)
 
+    return candidates
+
+
+def get_harry_most_common_word() -> tuple[str, int]:
+    # file = DATA if 'DATA' in globals() else TEMPFILE
+    stop_words_file = DATADIR/DATAFILES[0] if 'DATADIR' in globals() else stopwords_file
+    harry_file = DATADIR/DATAFILES[1] if 'DATADIR' in globals() else harry_text
+
+    # Get list of words from files:
+    stop_words = get_words(stop_words_file)
+    harry = get_words(harry_file)
+
+    # Process words:
+    candidates = process_words(stop_words, harry)
+
     return Counter(candidates).most_common(1)[0]
 
 
@@ -86,5 +93,4 @@ if __name__ == '__main__':
     for datafile in DATAFILES:
         get_data(datafile)
 
-    datafiles = tuple(DATADIR/datafile for datafile in DATAFILES)
-    print(get_harry_most_common_word(*datafiles))
+    print(get_harry_most_common_word())
