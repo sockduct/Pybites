@@ -9,7 +9,7 @@ from typing import Any, Callable, TypeVar
 FuncT = TypeVar('FuncT', bound=Callable[..., Any])
 
 
-# def make_html(element: str) -> function:
+# Not return type of function but of Callable[..., Any]:
 def make_html(element: str) -> Callable[..., Any]:
     '''
     Decorator function with argument
@@ -17,9 +17,16 @@ def make_html(element: str) -> Callable[..., Any]:
     '''
 
     # Inner functions:
-    # def decorator(func: FuncT) -> FuncT:
+    # Tried this:  def decorator(func: FuncT) -> FuncT:
+    # But get error from mypy, expected:
+    # * _Wrapped[
+    #            [VarArg(Any), KwArg(Any)], Any,
+    #            [VarArg(tuple[Any, ...]), KwArg(dict[str, Any])], str
+    #   ]
+    # Not quite sure how to do that...
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
+        # Alternatively:  def wrapper(...)
         def process(*args: tuple[Any, ...], **kwargs:dict[str, Any]) -> str:
             return f'<{element}>{func(*args, **kwargs)}</{element}>'
 
