@@ -13,15 +13,20 @@ URL = 'https://bites-data.s3.us-east-2.amazonaws.com'
 
 
 # Module
-def get_data(datafile: str=DATAFILE, datadir: Path=DATADIR, url: str=URL) -> None:
+def get_data(datafile: str=DATAFILE, datadir: Path=DATADIR, url: str=URL,
+             filext: str='.txt', verbose: bool=True) -> None:
     if not datadir.exists():
         datadir.mkdir()
 
-    data = datadir/datafile
+    if not (datafilep := Path(datafile)).suffix:
+        datafilep = datafilep.with_suffix(filext)
+
+    data = datadir/datafilep
     if not data.exists():
-        print(f'Retrieving data and saving to {data}.')
+        if verbose:
+            print(f'Retrieving data and saving to {data}.')
         urlretrieve(f'{url}/{datafile}', data)
-    else:
+    elif verbose:
         print(f'{data} already present.')
 
 

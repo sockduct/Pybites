@@ -6,7 +6,7 @@ from io import StringIO, TextIOWrapper
 import json
 from pathlib import Path
 import re
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Literal, TypedDict
 from urllib.request import urlretrieve
 
 
@@ -46,12 +46,6 @@ class Movie(TypedDict):
     Production: str
     Website: str
     Response: str
-
-class MovieData(TypedDict):
-    Awards: NotRequired[str]
-    Runtime: NotRequired[str]
-    Mins: NotRequired[int]
-    Nominations: NotRequired[int]
 
 
 # Module
@@ -95,24 +89,30 @@ def get_movie_data(files: list[File]) -> list[Movie]:
     return [load_json_data(json_file) for json_file in files]
 
 
-def get_single_comedy(movies: list[Movie]) -> str:
+# Ideally would include all possible Movie fields in Literal list:
+def get_movie_field(movies: list[Movie], field: Literal['Awards', 'Genre', 'Runtime']
+                    ) -> dict[str, str|list[dict[str, str]]]:
+    return {movie['Title']: movie[field] for movie in movies}
+
+
+def get_single_comedy(movies: list[Movie]) -> str|None:
     """
     return the movie with Comedy in Genres
     * Title key = movie name
     * Genre key = list of genres
     """
-
-    # No error handling!!!
-    movie_list = [movie['Title'] for movie in movies if 'Comedy' in movie['Genre']]
-    data: str = movie_list[0]
-    return data
+    data = get_movie_field(movies, 'Genre')
+    comedies = [movie for movie, genre in data.items() if 'Comedy' in genre]
+    return comedies[0] if comedies else None
 
 
-# Ideally would include all possible Movie fields in Literal list:
-def get_movie_field(movies: list[Movie], field: Literal['Awards', 'Runtime']
-                    ) -> dict[str, MovieData]:
-    ### One option is:  # type: ignore
-    return {movie['Title']: {field: movie[field]} for movie in movies}
+def get_nominations(awards: str) -> int:
+    movie_total = 0
+    if nom1 := re.search(r'nominated for (\d+) oscars?', awards, re.IGNORECASE):
+        movie_total += int(nom1[1])
+    if nom2 := re.search(r'(\d+) wins? & (\d+) nominations?', awards, re.IGNORECASE):
+        movie_total += int(nom2[2])
+    return movie_total
 
 
 def get_movie_most_nominations(movies: list[Movie]) -> str:
@@ -124,26 +124,14 @@ def get_movie_most_nominations(movies: list[Movie]) -> str:
     """
     data = get_movie_field(movies, 'Awards')
 
-    for movie, movie_data in data.items():
-        movie_total = 0
-        if nom1 := re.search(r'nominated for (\d+) oscars?', movie_data['Awards'], re.IGNORECASE):
-            movie_total += int(nom1[1])
-        if (nom2 := re.search(r'(\d+) wins? & (\d+) nominations?', movie_data['Awards'],
-                              re.IGNORECASE)
-        ):
-            movie_total += int(nom2[2])
+    # Need to ignore typing as mypy complains awards could be str|list[dict[str,str]] from Movie
+    # TypedDict definition - apparently doesn't understand this particular key is only a str...
+    nominations = {movie: get_nominations(awards) for movie, awards in data.items()} # type: ignore
+    return max(nominations, key=lambda e: nominations[e])
 
-        data[movie]['Nominations'] = movie_total
 
-    '''
-    return sorted(
-        ((movie, movie_data['Nominations']) for movie, movie_data in data.items()),
-        key=lambda e: e[1]
-    )[-1][0]
-    '''
-
-    # Better:
-    return max(data, key=lambda e: data[e]['Nominations'])
+def get_runtime(runtime: str) -> int:
+    return int(res[1]) if (res := re.search(r'(\d+) min', runtime, re.IGNORECASE)) else 0
 
 
 def get_movie_longest_runtime(movies: list[Movie]) -> str:
@@ -155,21 +143,10 @@ def get_movie_longest_runtime(movies: list[Movie]) -> str:
     """
     data = get_movie_field(movies, 'Runtime')
 
-    for movie, movie_data in data.items():
-        if not (res := re.search(r'(\d+) min', movie_data['Runtime'], re.IGNORECASE)):
-            raise ValueError('Expected ## min, got:  movie_data["Runtime"]')
-
-        data[movie]['Mins'] = int(res[1])
-
-    '''
-    return sorted(
-        ((movie, movie_data['Mins']) for movie, movie_data in data.items()),
-        key=lambda e: e[1]
-    )[-1][0]
-    '''
-
-    # Better:
-    return max(data, key=lambda e: data[e]['Mins'])
+    # Need to ignore typing as mypy complains awards could be str|list[dict[str,str]] from Movie
+    # TypedDict definition - apparently doesn't understand this particular key is only a str...
+    runtime = {movie: get_runtime(runtime) for movie, runtime in data.items()} # type: ignore
+    return max(runtime, key=lambda e: runtime[e])
 
 
 if __name__ == '__main__':
