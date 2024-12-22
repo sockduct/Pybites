@@ -1,11 +1,12 @@
 #! /usr/bin/env python3.13
 
 
+from functools import singledispatch
 from io import StringIO, TextIOWrapper
 import json
 from pathlib import Path
 import re
-from typing import Any
+from typing import Any, Literal, NotRequired, TypedDict
 from urllib.request import urlretrieve
 
 
@@ -18,9 +19,40 @@ URL = 'https://bites-data.s3.us-east-2.amazonaws.com'
 
 # Types
 File = str | Path | TextIOWrapper | StringIO
-Movies = list[dict[str, Any]]
 
-### To do - define dict with types for everything...
+class Movie(TypedDict):
+    Title: str
+    Year: str
+    Rated: str
+    Released: str
+    Runtime: str
+    Genre: str
+    Director: str
+    Writer: str
+    Actors: str
+    Plot: str
+    Language: str
+    Country: str
+    Awards: str
+    Poster: str
+    Ratings: list[dict[str, str]]
+    Metascore: str
+    imdbRating: str
+    imdbVotes: str
+    imdbID: str
+    Type: str
+    DVD: str
+    BoxOffice: str
+    Production: str
+    Website: str
+    Response: str
+
+class MovieData(TypedDict):
+    Awards: NotRequired[str]
+    Runtime: NotRequired[str]
+    Mins: NotRequired[int]
+    Nominations: NotRequired[int]
+
 
 # Module
 ### Updates ###
@@ -40,22 +72,30 @@ def get_data(datafile: str=DATAFILE, datadir: Path=DATADIR, url: str=URL,
         print(f'{data} already present.')
 
 
-def get_movie_data(files: list[File]) -> list[dict[str, Any]]:
+@singledispatch
+def load_json_data(json_file: object) -> Movie:
+    raise NotImplementedError
+
+
+@load_json_data.register
+def _(json_file: str|Path) -> Movie:
+    with open(json_file, encoding='utf8') as infile:
+        data: Movie = json.load(infile)
+    return data
+
+
+@load_json_data.register
+def _(json_file: TextIOWrapper|StringIO) -> Movie:
+    data: Movie = json.load(json_file)
+    return data
+
+
+def get_movie_data(files: list[File]) -> list[Movie]:
     """Parse movie json files into a list of dicts"""
-    movie_data = []
-    for json_file in files:
-        # file/path:
-        try:
-            with open(json_file, encoding='utf8') as infile:
-                movie_data.append(json.load(infile))
-        # In-memory buffer:
-        except TypeError:
-            movie_data.append(json.load(json_file))
-
-    return movie_data
+    return [load_json_data(json_file) for json_file in files]
 
 
-def get_single_comedy(movies: Movies) -> str:
+def get_single_comedy(movies: list[Movie]) -> str:
     """
     return the movie with Comedy in Genres
     * Title key = movie name
@@ -63,14 +103,19 @@ def get_single_comedy(movies: Movies) -> str:
     """
 
     # No error handling!!!
-    return [movie['Title'] for movie in movies if 'Comedy' in movie['Genre']][0]
+    movie_list = [movie['Title'] for movie in movies if 'Comedy' in movie['Genre']]
+    data: str = movie_list[0]
+    return data
 
 
-def get_movie_field(movies: Movies, field: str) -> dict[str, dict[str, str]]:
-    return {movie['Title']: {field.lower(): movie[field]} for movie in movies}
+# Ideally would include all possible Movie fields in Literal list:
+def get_movie_field(movies: list[Movie], field: Literal['Awards', 'Runtime']
+                    ) -> dict[str, MovieData]:
+    ### One option is:  # type: ignore
+    return {movie['Title']: {field: movie[field]} for movie in movies}
 
 
-def get_movie_most_nominations(movies: Movies) -> str:
+def get_movie_most_nominations(movies: list[Movie]) -> str:
     """
     Return the movie that had the most nominations
 
@@ -81,22 +126,27 @@ def get_movie_most_nominations(movies: Movies) -> str:
 
     for movie, movie_data in data.items():
         movie_total = 0
-        if nom1 := re.search(r'nominated for (\d+) oscars?', movie_data['awards'], re.IGNORECASE):
+        if nom1 := re.search(r'nominated for (\d+) oscars?', movie_data['Awards'], re.IGNORECASE):
             movie_total += int(nom1[1])
-        if (nom2 := re.search(r'(\d+) wins? & (\d+) nominations?', movie_data['awards'],
+        if (nom2 := re.search(r'(\d+) wins? & (\d+) nominations?', movie_data['Awards'],
                               re.IGNORECASE)
         ):
             movie_total += int(nom2[2])
 
-        data[movie]['nominations'] = movie_total
+        data[movie]['Nominations'] = movie_total
 
+    '''
     return sorted(
-        ((movie, movie_data['nominations']) for movie, movie_data in data.items()),
+        ((movie, movie_data['Nominations']) for movie, movie_data in data.items()),
         key=lambda e: e[1]
     )[-1][0]
+    '''
+
+    # Better:
+    return max(data, key=lambda e: data[e]['Nominations'])
 
 
-def get_movie_longest_runtime(movies: Movies) -> str:
+def get_movie_longest_runtime(movies: list[Movie]) -> str:
     """
     Return the movie that has the longest runtime
 
@@ -106,15 +156,20 @@ def get_movie_longest_runtime(movies: Movies) -> str:
     data = get_movie_field(movies, 'Runtime')
 
     for movie, movie_data in data.items():
-        if not (res := re.search(r'(\d+) min', movie_data['runtime'], re.IGNORECASE)):
-            raise ValueError('Expected ## min, got:  movie_data["runtime"]')
+        if not (res := re.search(r'(\d+) min', movie_data['Runtime'], re.IGNORECASE)):
+            raise ValueError('Expected ## min, got:  movie_data["Runtime"]')
 
-        data[movie]['mins'] = int(res[1])
+        data[movie]['Mins'] = int(res[1])
 
+    '''
     return sorted(
-        ((movie, movie_data['mins']) for movie, movie_data in data.items()),
+        ((movie, movie_data['Mins']) for movie, movie_data in data.items()),
         key=lambda e: e[1]
     )[-1][0]
+    '''
+
+    # Better:
+    return max(data, key=lambda e: data[e]['Mins'])
 
 
 if __name__ == '__main__':
