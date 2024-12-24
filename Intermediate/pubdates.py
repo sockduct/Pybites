@@ -53,7 +53,7 @@ def _get_dates() -> list[str]:
         return PUB_DATE.findall(f.read())
 
 
-def convert_to_datetime(date_str: str, tz: bool=False) -> datetime:
+def convert_to_datetime(date_str: str, tz: bool=True) -> datetime:
     """
     Receives a date str and convert it into a datetime object
 
@@ -63,20 +63,23 @@ def convert_to_datetime(date_str: str, tz: bool=False) -> datetime:
     Note:  Don't have to deal with time zone.
     """
     if tz:
-        dt = datetime.strptime(date_str, '%a, %d %b %Y %H:%M:%S %z')
-    else:
-        date_str = date_str[-6]
-        dt = datetime.strptime(date_str, '%a, %d %b %Y %H:%M:%S')
+        return datetime.strptime(date_str, '%a, %d %b %Y %H:%M:%S %z')
+
+    # Alternatively:   date_str = date_str.split('+')[0].strip()
+    date_str = date_str[:-6]
+    return datetime.strptime(date_str, '%a, %d %b %Y %H:%M:%S')
 
 
-def get_month_most_posts(dates: list[str]) -> str:
+def get_month_most_posts(dates: list[datetime]) -> str:
     """Receives a list of datetimes and returns the month (format YYYY-MM)
        that occurs most"""
-    dt_list = [convert_to_datetime(date) for date in dates]
-    return Counter(dt.strftime('%Y-%d') for dt in dt_list).most_common(1)
+    # Alternative date formatting:  f'{d.year}-{str(d.month).zfill(2)}'
+    res: list[tuple[str, int]] = Counter(date.strftime('%Y-%m') for date in dates).most_common(1)
+    return res[0][0]
 
 
 if __name__ == '__main__':
     get_data()
     date_data = _get_dates()
-    print(get_month_most_posts(date_data))
+    dt_list = [convert_to_datetime(date) for date in date_data]
+    print(get_month_most_posts(dt_list))
