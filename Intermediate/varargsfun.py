@@ -1,7 +1,7 @@
 #! /usr/bin/env python3.13
 
 
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, cast
 
 
 class Profile(TypedDict):
@@ -11,8 +11,8 @@ class Profile(TypedDict):
     awards: NotRequired[dict[str, str]]
 
 
-def get_profile(name: str, age: int, *args: tuple[str], verbose: bool=False,
-                **kwargs: dict[str, str]) -> Profile:
+def get_profile(name: str, age: int, *sports: tuple[str, ...], verbose: bool=False,
+                **awards: dict[str, str]) -> Profile:
     '''
     Takes:
     * required name
@@ -26,22 +26,15 @@ def get_profile(name: str, age: int, *args: tuple[str], verbose: bool=False,
 
     profile = Profile(name=name, age=age)
 
-    if args:
+    if sports:
         max_sports = 5
-
-        sports = sorted(args)
         if len(sports) > max_sports:
             raise ValueError(f'Maximum of {max_sports} allowed but {len(sports)} supplied.')
 
-        profile['sports'] = sports
-    else:
-        sports = None
+        profile['sports'] = cast(list[str], sorted(sports))
 
-    if kwargs:
-        awards = kwargs
-        profile['awards'] = awards
-    else:
-        awards = None
+    if awards:
+        profile['awards'] = cast(dict[str, str], awards)
 
     if verbose:
         print(f'Profile({name=}, {age=}, {sports=}, {awards=})')
@@ -55,6 +48,8 @@ if __name__ == '__main__':
                  ('tim', 36, 'tennis', 'basketball', 'kwargs')]:
         if 'kwargs' in args:
             args = args[:-1]
-            get_profile(*args, verbose=True, **kwargs)
+            # Spent much time trying but proves difficult to type annotate:
+            get_profile(*args, verbose=True, **kwargs)  # type: ignore
         else:
-            get_profile(*args, verbose=True)
+            # Spent much time trying but proves difficult to type annotate:
+            get_profile(*args, verbose=True)  # type: ignore
