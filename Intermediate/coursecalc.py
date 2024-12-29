@@ -15,7 +15,6 @@ URL = 'https://bites-data.s3.us-east-2.amazonaws.com'
 
 
 # Module
-### Updates ###
 def get_path(datafile: str=DATAFILE, datadir: Path=DATADIR, filext: str='.txt') -> Path:
     if not datadir.exists():
         datadir.mkdir()
