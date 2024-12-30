@@ -8,12 +8,18 @@ from urllib.request import urlretrieve
 # Global Constants:
 CWD = Path(__file__).parent
 DATADIR = CWD/'data'
-DATAFILE = '<file>'
+DATAFILE = 'UNDEFINED'
 URL = 'https://bites-data.s3.us-east-2.amazonaws.com'
 
 
 # Module
 def get_path(datafile: str=DATAFILE, datadir: Path=DATADIR, filext: str='.txt') -> Path:
+    '''
+    Return full path to datafile (Path object)
+    '''
+    if datafile == 'UNDEFINED':
+        raise ValueError('DATAFILE must be defined with the correct filename.')
+
     if not datadir.exists():
         datadir.mkdir()
 
@@ -25,8 +31,14 @@ def get_path(datafile: str=DATAFILE, datadir: Path=DATADIR, filext: str='.txt') 
 
 def get_data(datafile: str=DATAFILE, datapath: str|Path|None=None, url: str=URL,
              verbose: bool=False) -> None:
+    '''
+    Retrieve data from AWS S3 and store in datapath (Path object to datafile)
+    '''
+    if datafile == 'UNDEFINED':
+        raise ValueError('DATAFILE must be defined with the correct filename.')
+
     if datapath is None:
-        datapath = get_path()
+        datapath = get_path(datafile)
     elif isinstance(datapath, str):
         datapath = Path(datapath)
 
@@ -38,9 +50,12 @@ def get_data(datafile: str=DATAFILE, datapath: str|Path|None=None, url: str=URL,
         print(f'{datapath} already present.')
 
 
-def do_stuff() -> ...:
+def do_stuff() -> None:
+    '''
+    Example to differentiate between local and cloud environment:
     file = get_path() if 'DATAFILE' in globals() else TEMPFILE
-    ...
+    '''
+    pass
 
 
 if __name__ == '__main__':
