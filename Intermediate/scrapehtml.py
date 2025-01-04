@@ -7,6 +7,7 @@ from re import compile, IGNORECASE as ignorecase
 import sys
 
 from bs4 import BeautifulSoup as Soup
+import bs4
 import requests
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
@@ -35,7 +36,10 @@ def get_book():
     soup = Soup(CONTENT, 'lxml')
     # title = str(soup.title.string) if soup.title else 'No title found'
     title = str(soup.find_all(string=compile(r'mastering\s+typescript', ignorecase))[0].strip())
-    description = soup...
+    descr_section = soup.find_all('div', 'dotd-main-book-summary')[0]
+    for n, line in enumerate(descr_section.contents):
+        if isinstance(line, bs4.element.Tag) and (res := ''.join(line.strings).strip()):
+            print(f'({n}) {type(line)}:  {res}')
 
 if __name__ == '__main__':
     datapath = get_path(datafile=DATAFILE, datadir=DATADIR)
