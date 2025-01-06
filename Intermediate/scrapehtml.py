@@ -3,7 +3,7 @@
 
 from collections import namedtuple
 from pathlib import Path
-from re import compile, IGNORECASE as ignorecase
+import re
 import sys
 
 from bs4 import BeautifulSoup as Soup
@@ -34,12 +34,28 @@ def get_book():
     * Populate and return a Book namedtuple
     """
     soup = Soup(CONTENT, 'lxml')
+    # Wrong title!
     # title = str(soup.title.string) if soup.title else 'No title found'
-    title = str(soup.find_all(string=compile(r'mastering\s+typescript', ignorecase))[0].strip())
-    descr_section = soup.find_all('div', 'dotd-main-book-summary')[0]
-    for n, line in enumerate(descr_section.contents):
-        if isinstance(line, bs4.element.Tag) and (res := ''.join(line.strings).strip()):
-            print(f'({n}) {type(line)}:  {res}')
+    #
+    # There's a better way:
+    # title = str(
+    #   soup.find_all(string=re.compile(r'mastering\s+typescript', re.IGNORECASE))[0].strip()
+    # )
+    book_section = soup.find('div', 'dotd-main-book-summary')
+    for line in book_section.contents:
+        if isinstance(line, bs4.element.Tag) and (text := ''.join(line.strings).strip()):
+            print(f'{type(line)}:  {text}')
+            if re.search(r'mastering\s+typescript', text, re.IGNORECASE):
+                title = text
+            elif re.search(r'time is running out', text, re.IGNORECASE):
+                continue
+            elif '\n' in text:
+                description_details = text
+            else:
+                description = text
+    book_section = soup.find('div', 'dotd-main-book-image')
+    pass
+
 
 if __name__ == '__main__':
     datapath = get_path(datafile=DATAFILE, datadir=DATADIR)
