@@ -7,7 +7,7 @@ import re
 import sys
 
 from bs4 import BeautifulSoup as Soup
-import bs4
+from bs4.element import Tag
 import requests
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
@@ -25,7 +25,7 @@ DATAFILE = 'packt.html'
 Book = namedtuple('Book', 'title description image link')
 
 
-def get_book():
+def get_book() -> Book:
     """
     Goals:
     * Make a Soup object
@@ -42,19 +42,23 @@ def get_book():
     #   soup.find_all(string=re.compile(r'mastering\s+typescript', re.IGNORECASE))[0].strip()
     # )
     book_section = soup.find('div', 'dotd-main-book-summary')
-    for line in book_section.contents:
-        if isinstance(line, bs4.element.Tag) and (text := ''.join(line.strings).strip()):
-            print(f'{type(line)}:  {text}')
-            if re.search(r'mastering\s+typescript', text, re.IGNORECASE):
-                title = text
-            elif re.search(r'time is running out', text, re.IGNORECASE):
-                continue
-            elif '\n' in text:
-                description_details = text
-            else:
-                description = text
+    if isinstance(book_section, Tag):
+        for line in book_section.contents:
+            if isinstance(line, Tag) and (text := ''.join(line.strings).strip()):
+                if re.search(r'mastering\s+typescript', text, re.IGNORECASE):
+                    title = text
+                elif re.search(r'time is running out', text, re.IGNORECASE):
+                    continue
+                elif '\n' in text:
+                    description_details = text
+                else:
+                    description = text
     book_section = soup.find('div', 'dotd-main-book-image')
-    pass
+    if isinstance(book_section, Tag):
+        link = book_section.a['href'] if isinstance(book_section, Tag) else None
+        image = book_section.img['src'] if isinstance(book_section, Tag) else None
+
+    return Book(title=title, description=description, image=image, link=link)
 
 
 if __name__ == '__main__':
