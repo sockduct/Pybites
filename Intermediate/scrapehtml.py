@@ -33,7 +33,8 @@ def get_book() -> Book:
       * Mastering  Typescript - Second Edition
     * Populate and return a Book namedtuple
     """
-    soup = Soup(CONTENT, 'lxml')
+    # soup = Soup(CONTENT, 'lxml')
+    soup = Soup(CONTENT, 'html.parser')
     # Wrong title!
     # title = str(soup.title.string) if soup.title else 'No title found'
     #
@@ -42,6 +43,17 @@ def get_book() -> Book:
     #   soup.find_all(string=re.compile(r'mastering\s+typescript', re.IGNORECASE))[0].strip()
     # )
     book_section = soup.find('div', 'dotd-main-book-summary')
+    '''
+    Alternate solution:
+    book_image = soup.find('div', {'class': 'dotd-main-book-image'})
+    link = book_image.find('a').get('href')
+    image = book_image.find('img').get('src')
+    book_main = soup.find('div', {'class': 'dotd-main-book-summary'})
+    title_div = book_main.find('div', {'class': 'dotd-title'})
+    title = title_div.find('h2').text.strip()
+    descr_div = title_div.find_next_sibling("div")
+    description = descr_div.text.strip()
+    '''
     if isinstance(book_section, Tag):
         for line in book_section.contents:
             if isinstance(line, Tag) and (text := ''.join(line.strings).strip()):
@@ -53,10 +65,23 @@ def get_book() -> Book:
                     description_details = text
                 else:
                     description = text
-    book_section = soup.find('div', 'dotd-main-book-image')
-    if isinstance(book_section, Tag):
-        link = book_section.a['href'] if isinstance(book_section, Tag) else None
-        image = book_section.img['src'] if isinstance(book_section, Tag) else None
+    else:
+        title = None
+        description_details = None
+        description = None
+
+    if book_section := soup.find('div', 'dotd-main-book-image'):
+        if (hyperlink := book_section.find('a')) and isinstance(hyperlink, Tag):
+            link = hyperlink['href']
+        else:
+            link = None
+        if (image_tag := book_section.find('img')) and isinstance(image_tag, Tag):
+            image = image_tag['src']
+        else:
+            image = None
+    else:
+        link = None
+        image = None
 
     return Book(title=title, description=description, image=image, link=link)
 
