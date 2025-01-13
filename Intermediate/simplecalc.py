@@ -11,7 +11,7 @@ def calculator(operation, numbers):
     pass
 
 
-def create_parser():
+def create_parser() -> argparse.ArgumentParser:
     """TODO 2:
        Create an ArgumentParser object:
        - have one operation argument,
@@ -25,19 +25,23 @@ def create_parser():
         description='Add/Subtract/Multiple/Divide a list of numbers'
     )
     parser.add_argument(
-        '-a', '--add', action='extend', nargs='+', type=int, help='Add a list of numbers'
+        '-a', '--add', action='extend', nargs='+', type=float, metavar='num',
+        help='Add a list of numbers'
     )
     parser.add_argument(
-        '-s', '--sub', action='extend', nargs='+', type=int, help='Subtract a list of numbers'
+        '-s', '--sub', action='extend', nargs='+', type=int, metavar='num',
+        help='Subtract a list of numbers'
     )
     parser.add_argument(
-        '-d', '--div', action='extend', nargs='+', type=int, help='Divide a list of numbers'
+        '-d', '--div', action='extend', nargs='+', type=int, metavar='num',
+        help='Divide a list of numbers'
     )
     parser.add_argument(
-        '-m', '--mul', action='extend', nargs='+', type=int, help='Multiply a list of numbers'
+        '-m', '--mul', action='extend', nargs='+', type=int, metavar='num',
+        help='Multiply a list of numbers'
     )
 
-    return parser.parse_args()
+    return parser
 
 
 def call_calculator(args=None, stdout=False):
@@ -47,12 +51,12 @@ def call_calculator(args=None, stdout=False):
        if stdout is True print the result"""
     parser = create_parser()
 
-    ### Debug:
-    print(parser)
-    raise SystemExit
-
     if args is None:
         args = parser.parse_args()
+
+    ### Debug:
+    print(args)
+    raise SystemExit
 
     # taking the first operation in args namespace
     # if combo, e.g. -a and -s, take the first one
