@@ -2,13 +2,36 @@
 
 
 import argparse
+from functools import reduce
+from math import prod
+from operator import sub, truediv
+from typing import Callable, TypedDict
 
 
-def calculator(operation, numbers):
+class Operations(TypedDict):
+   add: Callable[[list[float]], float]
+   sub: Callable[[float, float], float]
+   mul: Callable[[list[float]], float]
+   div: Callable[[float, float], float]
+
+
+operations: Operations = dict(add=sum, sub=sub, mul=prod, div=truediv)
+
+
+def calculator(operation: str, numbers: list[float]) -> float:
     """TODO 1:
        Create a calculator that takes an operation and list of numbers.
        Perform the operation returning the result rounded to 2 decimals"""
-    pass
+    if operation not in operations:
+        raise ValueError(f'Expected add/sub/mul/div, got "{operation}"')
+
+    match operation:
+        case 'sub' | 'div':
+            res = reduce(operations[operation], numbers)
+        case 'add' | 'mul':
+            res = operations[operation](numbers)
+
+    return round(res, 2)
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -20,31 +43,28 @@ def create_parser() -> argparse.ArgumentParser:
 
        Note that type=float times out here so do the casting in the calculator
        function above!"""
-    parser = argparse.ArgumentParser(
-        # prog='Simple Calculator',
-        description='Add/Subtract/Multiple/Divide a list of numbers'
-    )
+    parser = argparse.ArgumentParser(description='A simple calculator')
     parser.add_argument(
         '-a', '--add', action='extend', nargs='+', type=float, metavar='num',
-        help='Add a list of numbers'
+        help='Sums numbers'
     )
     parser.add_argument(
-        '-s', '--sub', action='extend', nargs='+', type=int, metavar='num',
-        help='Subtract a list of numbers'
+        '-s', '--sub', action='extend', nargs='+', type=float, metavar='num',
+        help='Subtracts numbers'
     )
     parser.add_argument(
-        '-d', '--div', action='extend', nargs='+', type=int, metavar='num',
-        help='Divide a list of numbers'
+        '-m', '--mul', action='extend', nargs='+', type=float, metavar='num',
+        help='Multiplies numbers'
     )
     parser.add_argument(
-        '-m', '--mul', action='extend', nargs='+', type=int, metavar='num',
-        help='Multiply a list of numbers'
+        '-d', '--div', action='extend', nargs='+', type=float, metavar='num',
+        help='Divides numbers'
     )
 
     return parser
 
 
-def call_calculator(args=None, stdout=False):
+def call_calculator(args: argparse.Namespace|None=None, stdout: bool=False) -> float|None:
     """Provided/done:
        Calls calculator with provided args object.
        If args are not provided get them via create_parser,
@@ -55,8 +75,8 @@ def call_calculator(args=None, stdout=False):
         args = parser.parse_args()
 
     ### Debug:
-    print(args)
-    raise SystemExit
+    # print(args)
+    # raise SystemExit
 
     # taking the first operation in args namespace
     # if combo, e.g. -a and -s, take the first one
@@ -73,6 +93,8 @@ def call_calculator(args=None, stdout=False):
             print(res)
 
         return res
+
+    return None
 
 
 if __name__ == '__main__':
