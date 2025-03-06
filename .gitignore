@@ -173,3 +173,6 @@ data/
 # Specific code to ignore:
 infile.py
 extyping?.py
+
+# Requests caches:
+*.sqlite
