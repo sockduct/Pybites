@@ -19,7 +19,6 @@ import csv
 from io import StringIO
 from pprint import pprint
 
-import requests
 import requests_cache
 
 
@@ -35,11 +34,14 @@ def get_season_csv_file(season: int) -> str:
         return download.content.decode('utf-8')
 
 
-def get_num_words_spoken_by_character_per_episode(content: str):
+def get_num_words_spoken_by_character_per_episode(content: str
+                                                  ) -> defaultdict[str, Counter[str]]:
     """Receives loaded csv content (str) and returns a dict of
        keys=characters and values=Counter object,
        which is a mapping of episode=>words spoken"""
-    data = defaultdict(Counter)
+    data: defaultdict[str, Counter[str]] = defaultdict(Counter)
+    # Alternative reader setup:
+    # reader = csv.DictReader(content.splitlines(), delimiter=',')
     reader = csv.DictReader(StringIO(content, newline=''))
     for row in reader:
         data[row['Character']] += Counter({row['Episode']: len(row['Line'].split())})
@@ -50,4 +52,3 @@ def get_num_words_spoken_by_character_per_episode(content: str):
 if __name__ == '__main__':
     content = get_season_csv_file(1)
     pprint(get_num_words_spoken_by_character_per_episode(content))
-    # print(get_num_words_spoken_by_character_per_episode(content))
