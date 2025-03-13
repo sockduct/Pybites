@@ -39,29 +39,51 @@ DATADIR = CWD/'data'
 DATAFILE = 'us_holidays.html'
 
 
-def get_us_bank_holidays(content: str) -> defaultdict[str, list[str]]:
+def get_us_bank_holidays(content: str='') -> defaultdict[str, list[str]]:
     """Receive scraped html output, make a BS object, parse the bank
        holiday table (css class = list-table), and return a dict of
        keys -> months and values -> list of bank holidays"""
     holidays = defaultdict(list)
+    if not content:
+        content = get_content()
     soup = BeautifulSoup(content, 'html.parser')
 
-    # Parse out:
-    # * Month - table.tbody.td.time.string
-    # * Holiday description - table.tbody.td.a.string
+    '''
+    Parse out:
+    * Month - table.tbody.td.time.string
+    * Holiday description - table.tbody.td.a.string
+
+    Alternative approaches:
+    # Ensure correct table as could be more than one:
+    table = soup.find('table', class_='list-table')
+    # Or:
+    table = soup.select_one('table.list-table')
+
+    # Skip first row:
+    for tr in table.find_all('tr')[1:]:
+    # Or:
+    for tr in table.tbody.find_all('tr'):
+        time = tr.time
+        href = tr.a
+    '''
     if soup.table and soup.table.tbody and soup.table.tbody.td:
         for cell in soup.table.tbody.find_all('td'):
             if cell.time:
                 month = str(cell.time.string.split('-')[1]).strip()
             elif cell.a:
                 holidays[month].append(str(cell.a.string).strip())
+    else:
+        print('Warning:  Unable to parse out bank holiday data.')
 
     return holidays
 
 
-if __name__ == '__main__':
+def get_content() -> str:
     datapath = get_path(datafile=DATAFILE, datadir=DATADIR)
     get_data(datafile=DATAFILE, datapath=datapath, verbose=True)
 
-    content = datapath.read_text()
-    pprint(get_us_bank_holidays(content))
+    return datapath.read_text()
+
+
+if __name__ == '__main__':
+   pprint(get_us_bank_holidays())
