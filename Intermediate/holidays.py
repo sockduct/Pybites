@@ -39,15 +39,22 @@ DATADIR = CWD/'data'
 DATAFILE = 'us_holidays.html'
 
 
-def get_us_bank_holidays(content: str) -> dict[str, list[str]]:
+def get_us_bank_holidays(content: str) -> defaultdict[str, list[str]]:
     """Receive scraped html output, make a BS object, parse the bank
        holiday table (css class = list-table), and return a dict of
        keys -> months and values -> list of bank holidays"""
     holidays = defaultdict(list)
     soup = BeautifulSoup(content, 'html.parser')
 
-    start = soup.table['class']
-    ...
+    # Parse out:
+    # * Month - table.tbody.td.time.string
+    # * Holiday description - table.tbody.td.a.string
+    if soup.table and soup.table.tbody and soup.table.tbody.td:
+        for cell in soup.table.tbody.find_all('td'):
+            if cell.time:
+                month = str(cell.time.string.split('-')[1]).strip()
+            elif cell.a:
+                holidays[month].append(str(cell.a.string).strip())
 
     return holidays
 
