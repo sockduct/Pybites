@@ -12,13 +12,16 @@ To do:
 * Strip out punctuation
 '''
 
-from string import ascii_letters, punctuation
+from string import ascii_letters, digits, punctuation
 
 
 def extract_non_ascii_words(text: str) -> list[str]:
     """Filter a text returning a list of non-ascii words"""
     ascii_set = set(ascii_letters)
-    return [word for word in text.split() if any(char for char in word if char not in ascii_set)]
+    extra = punctuation + digits
+    # Easier alternative:  return [word for word in text.split() if not word.isascii()]
+    return [word for word in text.split()
+            if any(char for char in word.strip(extra) if char not in ascii_set)]
 
 
 if __name__ == '__main__':
