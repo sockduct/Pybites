@@ -50,12 +50,36 @@ class Color:
     @staticmethod
     def hex2rgb(hex: str) -> tuple[int, int, int]:
         """Class method that converts a hex value into an rgb one"""
-        if not isinstance(hex, str) or not re.match(r'#[0-9a-f]{6}$', (hex_val := hex.strip().lower())):
-            raise ValueError(
-                f'Expected string of form #[0-9a-f]x6, e.g., "#00ff7e", not "{hex}".'
-            )
+        errmsg = 'Expected string of form #[0-9a-f]x6, e.g., "#00ff7e", not "{}".'
+        if not isinstance(hex, str) or not re.match(
+            r'#[0-9a-fx]{6,12}$', (hex_val := hex.strip().lower())
+        ):
+            raise ValueError(errmsg.format(hex))
 
-        return tuple(int(hex_val[i:i + 2], base=16) for i in (1, 3, 5))
+        hex_stack = list(hex_val)
+        current = []
+        hex_res = []
+        while hex_stack:
+            current.insert(0, hex_stack.pop())
+            match current:
+                case [d1]:
+                    continue
+                case [d1, d2] | ['x', d1, d2]:
+                    continue
+                case ['#', d1, d2]:
+                    hex_res.insert(0, d1 + d2)
+                    current = []
+                case [d1, d2, d3]:
+                    hex_res.insert(0, d2 + d3)
+                    current = [d1]
+                case ['0', 'x', d1, d2]:
+                    hex_res.insert(0, d1 + d2)
+                    current = []
+                case _:
+                    raise ValueError(errmsg.format(hex))
+
+        hex_num = ''.join(hex_res)
+        return tuple(int(hex_num[i:i + 2], base=16) for i in (0, 2, 4))
 
     @staticmethod
     def rgb2hex(rgb: list[int]|tuple[int, int, int]) -> str:
@@ -87,6 +111,7 @@ if __name__ == '__main__':
     with suppress(ValueError):
         Color.hex2rgb('bad')
     Color.hex2rgb('#ff00e7')
+    Color.hex2rgb('#0xff0x000xe7')
     with suppress(ValueError):
         Color.hex2rgb(1227)
     with suppress(ValueError):
