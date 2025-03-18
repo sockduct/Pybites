@@ -15,17 +15,25 @@ Implement the Color class:
 * Take a look at the tests for a better understanding of the values expected.
 '''
 
+from contextlib import suppress
 from pathlib import Path
+import re
 import sys
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
-
 from basetmpl import get_data, get_path
-
 
 CWD = Path(__file__).parent
 DATADIR = CWD/'data'
 DATAFILE = 'color_values.py'
+
+sys.path.append(str(Path(DATADIR)))
+try:
+    from color_values import COLOR_NAMES
+except ImportError:
+    print(
+        'Warning:  Unable to import color_values - try again after running this as the main module.'
+    )
 
 
 class Color:
@@ -36,30 +44,59 @@ class Color:
     """
 
     def __init__(self, color: str):
-        self.rgb = COLOR_NAMES[color.upper()]
+        self._color = color
+        self.rgb = COLOR_NAMES.get(color.upper())
 
-    @classmethod
-    def hex2rgb(cls):
+    @staticmethod
+    def hex2rgb(hex: str) -> tuple[int, int, int]:
         """Class method that converts a hex value into an rgb one"""
-        pass
+        if not isinstance(hex, str) or not re.match(r'#[0-9a-f]{6}$', (hex_val := hex.strip().lower())):
+            raise ValueError(
+                f'Expected string of form #[0-9a-f]x6, e.g., "#00ff7e", not "{hex}".'
+            )
 
-    @classmethod
-    def rgb2hex(cls):
+        return tuple(int(hex_val[i:i + 2], base=16) for i in (1, 3, 5))
+
+    @staticmethod
+    def rgb2hex(rgb: list[int]|tuple[int, int, int]) -> str:
         """Class method that converts an rgb value into a hex one"""
-        pass
+        if not isinstance(rgb, (list, tuple)) or not all(isinstance(val, int) for val in rgb) or (
+            not all(0 <= num <= 255 for num in rgb) or len(rgb) != 3
+        ):
+            raise ValueError(
+                f'Expected tuple of 3 integers from 0 - 255, e.g., (0, 127, 255), not "{rgb}".'
+            )
 
-    def __repr__(self):
+        return f"#{''.join(hex(num) for num in rgb)}"
+
+    def __repr__(self) -> str:
         """Returns the repl of the object"""
-        pass
+        return f"Color('{self._color}')"
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns the string value of the color object"""
-        pass
+        return f'{self.rgb}' if self.rgb is not None else 'Unknown'
 
-
+import contextlib
 if __name__ == '__main__':
     datapath = get_path(datafile=DATAFILE, datadir=DATADIR)
-    get_data(datafile=DATAFILE, datapath=datapath, verbose=False)
+    get_data(datafile=DATAFILE, datapath=datapath, verbose=True)
 
-    sys.path.append(str(Path(DATADIR)))
-    from color_values import COLOR_NAMES
+    Color('white')
+    Color('bad')
+    with suppress(ValueError):
+        Color.hex2rgb('bad')
+    Color.hex2rgb('#ff00e7')
+    with suppress(ValueError):
+        Color.hex2rgb(1227)
+    with suppress(ValueError):
+        Color.rgb2hex('abc')
+    with suppress(ValueError):
+        Color.rgb2hex(122345)
+    with suppress(ValueError):
+        Color.rgb2hex(['a'])
+    with suppress(ValueError):
+        Color.rgb2hex([1, 2])
+    Color.rgb2hex([11, 22, 33])
+    print(repr(Color('black')))
+    print(Color('white'))
