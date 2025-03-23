@@ -13,7 +13,8 @@ Have fun and keep coding in Python!
 '''
 
 
-import os
+from collections.abc import Iterator
+from os import PathLike
 from pathlib import Path
 from pprint import pprint
 
@@ -21,28 +22,40 @@ from pprint import pprint
 ONE_KB = 1024
 
 
-type PathT = str | Path | os.PathLike
+type PathT = str | Path | PathLike[str]
+type SizeT = int | float
 
 
-def get_files(dirname: PathT, size_in_kb: int=0, *, verbose: bool=False) -> list[Path]:
+def get_files(dirname: PathT, size_in_kb: SizeT=0.0, *, verbose: bool=False) -> Iterator[Path]:
     """Return files in dirname that are >= size_in_kb"""
     if not isinstance(dirname, Path):
         try:
             dirname = Path(dirname)
-        except TypeError:
-            print(f'Error:  Expected string or Path, not "{dirname}".')
-            return
+        except TypeError as err:
+            raise TypeError(
+                f'Error:  Expected string, Path, or PathLike not "{dirname}".'
+            ) from err
 
-    files = []
+    '''
+    Alternatively:
+    # Probably better to use multiplication over division:
+    for file in glob.glob(os.path.join(dirname, '*')):
+        if os.stat(file).st_size >= size_in_kb * ONE_KB:
+            ...
+    '''
     for entry in dirname.iterdir():
-        if entry.is_file(follow_symlinks=False) and entry.stat().st_size//ONE_KB >= size_in_kb:
-            files.append(entry)
+        if entry.is_file(follow_symlinks=False) and entry.stat().st_size/ONE_KB >= size_in_kb:
+            yield entry
         elif verbose:
             print(f'Skipping {entry} - either not a file or too small...')
 
-    return files
-
 
 if __name__ == '__main__':
-    # get_files(123)
-    pprint(get_files('.'))
+    for args in ((123,), ('.', 3)):
+        print(f'Invoking get_files{args}...')
+        try:
+            res = list(get_files(*args, verbose=True))
+        except TypeError as err:
+            print(err)
+            res = []
+        pprint(list(res)) if res else print('Empty result')
