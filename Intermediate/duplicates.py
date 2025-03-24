@@ -25,11 +25,10 @@ def get_duplicate_indices(words: list[str]) -> list[int]:
 
     Make sure the returning list is unique and sorted in ascending order.
     """
-    count = Counter(words)
-    duplicates = {key: value for key, value in count.items() if value > 1}
-    indices = [words.index(key) for key in duplicates]
-
-    return sorted(indices)
+    # Alternative:
+    # duplicate_words = {word for word in words if words.count(word) > 1}
+    duplicates = {key: value for key, value in Counter(words).items() if value > 1}
+    return sorted(words.index(key) for key in duplicates)
 
 
 if __name__ == '__main__':
