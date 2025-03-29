@@ -45,7 +45,7 @@ def load_page() -> str:
         return session.get(TIM_BLOG).content.decode('utf-8')
 
 
-def get_top_books(content: str=None) -> list[tuple[str, int]]:
+def get_top_books(content: str|None=None) -> list[tuple[str, int]]:
     """Make a BeautifulSoup object loading in content,
        find all links that contain AMAZON, extract the book title
        (stripping spacing characters), and count them.
@@ -56,10 +56,18 @@ def get_top_books(content: str=None) -> list[tuple[str, int]]:
         content = load_page()
 
     soup = BeautifulSoup(content, 'html.parser')
-    books = defaultdict(int)
+    '''
+    # Alternative solution:
+    books = [link.text.strip() for link in soup.find_all("a")
+             if AMAZON in link["href"]]
+
+    return [book for book in Counter(books).most_common()
+            if book[1] >= MIN_COUNT]
+    '''
+    books: defaultdict[str, int] = defaultdict(int)
     for link in soup.find_all('a'):
         if (site := link.get('href')) and AMAZON in site:
-            books[link.text] += 1
+            books[link.text.strip()] += 1
 
     qualified = {book: count for book, count in books.items() if count >= MIN_COUNT}
     return list(sorted(qualified.items(), key=lambda item: item[1], reverse=True))
