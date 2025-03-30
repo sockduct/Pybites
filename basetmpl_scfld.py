@@ -9,7 +9,9 @@ from basetmpl import get_data, get_path
 
 
 CWD = Path(__file__).parent
+# Where to store retrieved data:
 DATADIR = CWD/'data'
+# Filename for retrieved data:
 DATAFILE = 'UNDEFINED'
 
 
