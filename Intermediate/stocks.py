@@ -32,6 +32,7 @@ Good luck and keep calm and parse your Data in Python.
 '''
 
 
+from collections import Counter
 import json
 from pathlib import Path
 from pprint import pprint
@@ -51,32 +52,54 @@ DATADIR = CWD/'data'
 DATAFILE = 'stocks.json'
 
 
-def _cap_str_to_mln_float(cap):
+def _cap_str_to_mln_float(cap: str) -> float:
     """If cap = 'n/a' return 0, else:
        - strip off leading '$',
        - if 'M' in cap value, strip it off and return value as float,
        - if 'B', strip it off, multiply by 1,000 and return
          value as float"""
-    pass
+    if cap.lower() == 'n/a':
+        return 0
+
+    cap = cap.strip('$')
+    if cap.endswith('M'):
+        return float(cap.strip('M'))
+    elif cap.endswith('B'):
+        return float(cap.strip('B')) * 1_000
+    else:
+        raise ValueError(f'Unexpected market cap value:  "{cap}"')
 
 
-def get_industry_cap(industry):
+def get_values(field: str) -> list[str]:
+    '''
+    Return a sorted list of all unique values present in field in data set.
+    e.g., Show all possible markets.
+    '''
+    result = {datum.get(field) for datum in data}
+    return sorted(result)
+
+
+def get_industry_cap(industry: str) -> float:
     """Return the sum of all cap values for given industry, use
        the _cap_str_to_mln_float to parse the cap values,
        return a float with 2 digit precision"""
-    pass
+    group = [datum for datum in data if datum['industry'] == industry]
+    result = sum(_cap_str_to_mln_float(datum['cap']) for datum in group)
+    return round(result, 2)
 
 
-def get_stock_symbol_with_highest_cap():
+def get_stock_symbol_with_highest_cap() -> str:
     """Return the stock symbol (e.g. PACD) with the highest cap, use
        the _cap_str_to_mln_float to parse the cap values"""
-    pass
+    result = sorted(data, key=lambda e: _cap_str_to_mln_float(e['cap']), reverse=True)[0]
+    return result['symbol']
 
 
-def get_sectors_with_max_and_min_stocks():
+def get_sectors_with_max_and_min_stocks() -> tuple[str, str]:
     """Return a tuple of the sectors with most and least stocks,
        discard n/a"""
-    pass
+    sectors = Counter(datum['sector'] for datum in data).most_common()
+    return sectors[0], sectors[1], sectors[-1]
 
 
 def main(*, verbose: bool=False) -> None:
@@ -101,6 +124,12 @@ def main(*, verbose: bool=False) -> None:
             json.dump(data, fp)
 
     pprint(data[:3])
+
+    print('\nTesting:')
+    industry = 'Advertising'
+    print(f'{industry} industry cap:  {get_industry_cap(industry)}')
+    print(f'Highest cap:  {get_stock_symbol_with_highest_cap()}')
+    print(f'Sectors with min and max stocks:  {get_sectors_with_max_and_min_stocks()}')
 
 
 if __name__ == '__main__':
