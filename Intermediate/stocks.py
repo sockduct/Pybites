@@ -35,7 +35,9 @@ Good luck and keep calm and parse your Data in Python.
 from collections import Counter
 import json
 from pathlib import Path
-from pprint import pprint
+from pprint import pprint, PrettyPrinter
+from textwrap import fill
+from typing import TypedDict, cast
 
 import requests
 
@@ -50,6 +52,43 @@ CWD = Path(__file__).parent
 DATADIR = CWD/'data'
 # Filename for retrieved data:
 DATAFILE = 'stocks.json'
+
+
+# Types
+class Stock(TypedDict):
+    id: int
+    name: str
+    symbol: str
+    industry: str
+    sector: str
+    market: str
+    cap: str
+
+
+def _get_data(verbose: bool=False) -> list[Stock]:
+    # Not recommended - doing because bite setup this way:
+    global data
+    cached = DATADIR/DATAFILE
+
+    # Check if already loaded:
+    if not data:
+        # Load JSON data into program:
+        if cached.is_file():
+            if verbose:
+                print(f'Loading data from cached file "{cached}"...')
+            with cached.open('r', encoding='utf8') as fp:
+                data = json.load(fp)
+        else:
+            if verbose:
+                print(f'Retrieving data from source "{STOCK_DATA}"...')
+            with requests.Session() as s:
+                data = s.get(STOCK_DATA).json()
+            if verbose:
+                print(f'Saving data to local cached file "{cached}"...')
+            with cached.open('w', encoding='utf8') as fp:
+                json.dump(data, fp)
+
+    return cast(list[Stock], data)
 
 
 def _cap_str_to_mln_float(cap: str) -> float:
@@ -70,20 +109,31 @@ def _cap_str_to_mln_float(cap: str) -> float:
         raise ValueError(f'Unexpected market cap value:  "{cap}"')
 
 
-def get_values(field: str) -> list[str]:
+def get_values(field: str) -> None|str:
     '''
     Return a sorted list of all unique values present in field in data set.
     e.g., Show all possible markets.
     '''
-    result = {datum.get(field) for datum in data}
-    return sorted(result)
+    local_data = _get_data()
+    result: set[str] = {datum.get(field) for datum in local_data if datum.get(field) is not None}
+    # Textwrap appears to be more flexible and doesn't wrap output in a tuple
+    # pretty = PrettyPrinter(compact=True)
+    # return pretty.pformat(', '.join(sorted(result)))
+    if result:
+        result_str = ', '.join(sorted(result))
+        return fill(result_str, width=70, initial_indent='*  ', subsequent_indent='*  ',
+                    break_long_words=False, break_on_hyphens=False)
+
+    # No results:
+    return None
 
 
 def get_industry_cap(industry: str) -> float:
     """Return the sum of all cap values for given industry, use
        the _cap_str_to_mln_float to parse the cap values,
        return a float with 2 digit precision"""
-    group = [datum for datum in data if datum['industry'] == industry]
+    local_data = _get_data()
+    group = [datum for datum in local_data if datum['industry'] == industry]
     result = sum(_cap_str_to_mln_float(datum['cap']) for datum in group)
     return round(result, 2)
 
@@ -91,39 +141,34 @@ def get_industry_cap(industry: str) -> float:
 def get_stock_symbol_with_highest_cap() -> str:
     """Return the stock symbol (e.g. PACD) with the highest cap, use
        the _cap_str_to_mln_float to parse the cap values"""
-    result = sorted(data, key=lambda e: _cap_str_to_mln_float(e['cap']), reverse=True)[0]
+    local_data = _get_data()
+    result = sorted(local_data, key=lambda e: _cap_str_to_mln_float(e['cap']), reverse=True)[0]
     return result['symbol']
 
 
 def get_sectors_with_max_and_min_stocks() -> tuple[str, str]:
     """Return a tuple of the sectors with most and least stocks,
        discard n/a"""
-    sectors = Counter(datum['sector'] for datum in data).most_common()
-    return sectors[0], sectors[1], sectors[-1]
+    local_data = _get_data()
+    sectors = Counter(datum['sector'] for datum in local_data).most_common()
+    first, last = 0, -1
+    while True:
+        first_sector = sectors[first][0]
+        last_sector = sectors[last][0]
+
+        if first_sector == 'n/a':
+            first += 1
+        elif last_sector == 'n/a':
+            last -= 1
+        else:
+            break
+
+    return first_sector, last_sector
 
 
-def main(*, verbose: bool=False) -> None:
-    # Not recommended - doing because bite setup this way:
-    global data
-    cached = DATADIR/DATAFILE
-
-    # Load JSON data into program:
-    if cached.is_file():
-        if verbose:
-            print(f'Loading data from cached file "{cached}"...')
-        with cached.open('r', encoding='utf8') as fp:
-            data = json.load(fp)
-    else:
-        if verbose:
-            print(f'Retrieving data from source "{STOCK_DATA}"...')
-        with requests.Session() as s:
-            data = s.get(STOCK_DATA).json()
-        if verbose:
-            print(f'Saving data to local cached file "{cached}"...')
-        with cached.open('w', encoding='utf8') as fp:
-            json.dump(data, fp)
-
-    pprint(data[:3])
+def testrun() -> None:
+    local_data = _get_data()
+    pprint(local_data[:3])
 
     print('\nTesting:')
     industry = 'Advertising'
@@ -132,5 +177,15 @@ def main(*, verbose: bool=False) -> None:
     print(f'Sectors with min and max stocks:  {get_sectors_with_max_and_min_stocks()}')
 
 
+def main(*, test: bool=False, verbose: bool=False) -> None:
+    # Prime data:
+    _get_data(verbose=verbose)
+
+    if test:
+        testrun()
+
+
+# When run as main program:
 if __name__ == '__main__':
-    main(verbose=True)
+    main(test=True, verbose=True)
+
