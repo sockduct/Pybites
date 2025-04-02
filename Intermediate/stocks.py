@@ -37,7 +37,7 @@ import json
 from pathlib import Path
 from pprint import pprint, PrettyPrinter
 from textwrap import fill
-from typing import TypedDict, cast
+from typing import Literal, TypedDict, cast
 
 import requests
 
@@ -63,6 +63,8 @@ class Stock(TypedDict):
     sector: str
     market: str
     cap: str
+
+type StockKey = Literal['id', 'name', 'symbol', 'industry', 'sector', 'market', 'cap']
 
 
 def _get_data(verbose: bool=False) -> list[Stock]:
@@ -109,17 +111,33 @@ def _cap_str_to_mln_float(cap: str) -> float:
         raise ValueError(f'Unexpected market cap value:  "{cap}"')
 
 
-def get_values(field: str) -> None|str:
+def get_values(field: StockKey) -> None|str:
     '''
     Return a sorted list of all unique values present in field in data set.
     e.g., Show all possible markets.
     '''
     local_data = _get_data()
-    result: set[str] = {datum.get(field) for datum in local_data if datum.get(field) is not None}
+    valid_keys = set(Stock.__annotations__.keys())
+    for invalid_key in ('id', 'cap', 'name', 'symbol'):
+        valid_keys.remove(invalid_key)
+    valid_fields = ', '.join(sorted(valid_keys))
+    if field == 'id':
+        print(f'Valid fields:  {valid_fields} ("id" is a unique identifier '
+              'and not eligible)')
+        return None
+    elif field in {'cap', 'name', 'symbol'}:
+        print(f'Valid fields:  {valid_fields} ("{field}" is a per-stock value '
+              'and not eligible)')
+        return None
+    elif field not in valid_keys:
+        raise ValueError(f'Invalid field:  "{field}", expected one of:  {valid_fields}')
+
     # Textwrap appears to be more flexible and doesn't wrap output in a tuple
     # pretty = PrettyPrinter(compact=True)
     # return pretty.pformat(', '.join(sorted(result)))
-    if result:
+    if  result:= {
+        cast(str, datum.get(field)) for datum in local_data if datum.get(field) is not None
+    }:
         result_str = ', '.join(sorted(result))
         return fill(result_str, width=70, initial_indent='*  ', subsequent_indent='*  ',
                     break_long_words=False, break_on_hyphens=False)
@@ -150,6 +168,12 @@ def get_sectors_with_max_and_min_stocks() -> tuple[str, str]:
     """Return a tuple of the sectors with most and least stocks,
        discard n/a"""
     local_data = _get_data()
+    #
+    # Better:
+    # sectors = Counter(
+    #     datum['sector'] for datum in local_data if datum['sector'] != 'n/a'
+    # ).most_common()
+    # return sectors[0][0], sectors[-1][0]
     sectors = Counter(datum['sector'] for datum in local_data).most_common()
     first, last = 0, -1
     while True:
