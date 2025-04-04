@@ -16,27 +16,20 @@ In the tests we check 5 paragraphs more of this text. Good luck and have fun!
 '''
 
 
-from collections import defaultdict
-
-
-VOWELS = list('aeiou')
+VOWELS = set('aeiou')
 
 
 def get_word_max_vowels(text: str) -> tuple[str, int]:
     """Get the case insensitive word in text that has most vowels.
        Return a tuple of the matching word and the vowel count, e.g.
        ('object-oriented', 6)"""
-    tally = defaultdict(int)
-
-    for word in text.strip().split():
-        # Skip words already counted:
-        if (current := word.lower()) in tally:
-            continue
-        for letter in (current := word.lower()):
-            if letter in VOWELS:
-                tally[current] += 1
-
-    return sorted(tally.items(), key=lambda item: item[1], reverse=True)[0]
+    tally = {
+        word.lower(): sum(char in VOWELS for char in word.lower())
+        for word in text.strip().split()
+    }
+    # return sorted(tally.items(), key=lambda item: item[1], reverse=True)[0]
+    # Alternative:
+    return max(tally.items(), key=lambda item: item[1])
 
 
 if __name__ == '__main__':
