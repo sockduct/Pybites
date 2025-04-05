@@ -7,13 +7,10 @@ and have fun!
 '''
 
 
-# from collections import namedtuple
-from datetime import datetime
 from operator import attrgetter
 from typing import NamedTuple
 
 
-# Book = namedtuple('Book', 'title authors pages published')
 class Book(NamedTuple):
     title: str
     authors: str
@@ -48,9 +45,8 @@ BOOKS = [
 books = BOOKS
 
 
-# all functions return books sorted in ascending order.
-
-def sort_books_by_len_of_title(books=BOOKS):
+# All functions return books sorted in ascending order:
+def sort_books_by_len_of_title(books: list[Book]=BOOKS) -> list[Book]:
     """
     Expected last book in list:
     Automate the Boring Stuff with Python
@@ -58,7 +54,7 @@ def sort_books_by_len_of_title(books=BOOKS):
     return sorted(books, key=lambda book: len(book.title))
 
 
-def sort_books_by_first_authors_last_name(books=BOOKS):
+def sort_books_by_first_authors_last_name(books: list[Book]=BOOKS) -> list[Book]:
     """
     Expected last book in list:
     Automate the Boring Stuff with Python
@@ -66,39 +62,42 @@ def sort_books_by_first_authors_last_name(books=BOOKS):
     return sorted(books, key=lambda book: book.authors.split(',')[0].split()[1])
 
 
-def sort_books_by_number_of_page(books=BOOKS):
+def sort_books_by_number_of_page(books: list[Book]=BOOKS) -> list[Book]:
     """
     Expected last book in list:
     Fluent Python
     """
-    pass
+    # return sorted(books, key=lambda book: book.pages)
+    # Better solution:
+    return sorted(books, key=attrgetter('pages'))
 
 
-def sort_books_by_published_date(books=BOOKS):
+def sort_books_by_published_date(books: list[Book]=BOOKS) -> list[Book]:
     """
     Expected last book in list:
     Python Interviews
     """
-    pass
+    # Could parse out datetime for sorting, but not necessary the way its formatted
+    # return sorted(books, key=lambda book: book.published)
+    return sorted(books, key=attrgetter('published'))
 
 
 def display(books: Book|list[Book]) -> str:
     if not isinstance(books, Book):
         # list of Books:
-        '''
-        return '\n'.join(
+        return '* ' + '\n* '.join(
             ', '.join(
-                f'{field.title()}: {str(book.field)}' for field in book._fields
-            ) for book in books
+                f'{field.title()}: {getattr(book, field)}' for field in book._fields
+            )
+            for book in books
         )
-        '''
 
-    # Actually single Book:
+    # Single Book:
     book = books
-    return ', '.join(f'{field.title()}: {str(book.field)}' for field in book._fields)
+    return '* ' + ', '.join(f'{field.title()}: {getattr(book, field)}' for field in book._fields)
 
 
 if __name__ == '__main__':
     for func in ('sort_books_by_len_of_title', 'sort_books_by_first_authors_last_name',
                  'sort_books_by_number_of_page', 'sort_books_by_published_date'):
-        print(f'Invoking {func}:\n* {display(globals()[func]())}\n')
+        print(f'Invoking {func}:\n{display(globals()[func]())}\n')
