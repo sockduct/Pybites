@@ -57,8 +57,10 @@ Areas: Counter sorting operator intersection
 """
 
 
-from collections import Counter
+from collections import Counter, defaultdict
+from itertools import product
 import operator
+from pprint import pformat
 
 
 CHEESES = [
@@ -159,7 +161,7 @@ def best_match_per_wine(wine_type: str="all") -> tuple[str, str, float]:
     }:
         raise ValueError(f'Expected all, red, white, or sparking for wine type, got "{wine_type}".')
 
-    best = []
+    best: list[tuple[str, str, float]] = []
     if wine_type in {'all', 'RED_WINES', 'red'}:
         best.extend((wine, cheese, compare(wine, cheese)) for wine in RED_WINES for cheese in CHEESES)
     if wine_type in {'all', 'WHITE_WINES', 'white'}:
@@ -170,7 +172,7 @@ def best_match_per_wine(wine_type: str="all") -> tuple[str, str, float]:
     return max(best, key=lambda item: item[2])
 
 
-def match_wine_5cheeses() -> list[tuple[str, list[str, str, str, str, str]]]:
+def match_wine_5cheeses(*, format: bool=False) -> str|list[tuple[str, list[str]]]:
     """Pairs all types of wines with cheeses ; returns a sorted list of tuples,
     where each tuple contains: wine, list of 5 best matching cheeses.
     List of cheeses is sorted by score descending then alphabetically ascending.
@@ -181,9 +183,22 @@ def match_wine_5cheeses() -> list[tuple[str, list[str, str, str, str, str]]]:
     ('Zinfandel', ['Caithness', 'Bel Paese', 'Ilchester', 'Limburger', 'Lancashire'])
     ]
     """
-    pass
+    wines = RED_WINES + WHITE_WINES + SPARKLING_WINES
+    scores = defaultdict(list)
+    for wine, cheese in product(wines, CHEESES):
+        scores[wine].append((cheese, compare(wine, cheese)))
+
+    for wine in scores:
+        scores[wine] = sorted(scores[wine], key=lambda item: (-item[1], item[0]))[:5]
+
+    result = sorted((wine, [cheese for cheese, _ in cheeses]) for wine, cheeses in scores.items())
+    return pformat(result, compact=True, width=120) if format else result
 
 
 if __name__ == "__main__":
-    for func in ('best_match_per_wine', 'match_wine_5cheeses'):
-        print(f'Invoking {func}:  {globals()[func]()}')
+    for func, args in (('best_match_per_wine', None), ('match_wine_5cheeses', dict(format=True))):
+        params = args or {}
+        print(
+            f'Invoking {func}({", ".join(f"{k}={v}" for k, v in params.items())}):  '
+            f'{globals()[func](**params)}'
+        )
