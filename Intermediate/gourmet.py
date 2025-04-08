@@ -156,19 +156,23 @@ def best_match_per_wine(wine_type: str="all") -> tuple[str, str, float]:
     """Wine cheese pair with the highest match score
     returns a tuple which contains wine, cheese, score
     """
-    if wine_type not in {
-        'all', 'RED_WINES', 'WHITE_WINES', 'SPARKLING_WINES', 'red', 'white', 'sparkling',
-    }:
-        raise ValueError(f'Expected all, red, white, or sparking for wine type, got "{wine_type}".')
+    match wine_type:
+        case 'all' | 'ALL':
+            wines = RED_WINES + WHITE_WINES + SPARKLING_WINES
+        case 'red' | 'RED' | 'RED_WINES':
+            wines = RED_WINES
+        case 'white' | 'WHITE' | 'WHITE_WINES':
+            wines = WHITE_WINES
+        case 'sparkling' | 'SPARKLING' | 'SPARKLING_WINES':
+            wines = SPARKLING_WINES
+        case _:
+            raise ValueError(
+                f'Expected all, red, white, or sparking for wine type, got "{wine_type}".'
+            )
 
-    best: list[tuple[str, str, float]] = []
-    if wine_type in {'all', 'RED_WINES', 'red'}:
-        best.extend((wine, cheese, compare(wine, cheese)) for wine in RED_WINES for cheese in CHEESES)
-    if wine_type in {'all', 'WHITE_WINES', 'white'}:
-        best.extend((wine, cheese, compare(wine, cheese)) for wine in WHITE_WINES for cheese in CHEESES)
-    if wine_type in {'all', 'SPARKLING_WINES', 'sparkling'}:
-        best.extend((wine, cheese, compare(wine, cheese)) for wine in SPARKLING_WINES for cheese in CHEESES)
-
+    best: list[tuple[str, str, float]] = [
+        (wine, cheese, compare(wine, cheese)) for wine in wines for cheese in CHEESES
+    ]
     return max(best, key=lambda item: item[2])
 
 
@@ -185,13 +189,18 @@ def match_wine_5cheeses(*, format: bool=False) -> str|list[tuple[str, list[str]]
     """
     wines = RED_WINES + WHITE_WINES + SPARKLING_WINES
     scores = defaultdict(list)
+    # For each wine, score it against all cheeses:
     for wine, cheese in product(wines, CHEESES):
         scores[wine].append((cheese, compare(wine, cheese)))
 
+    # Sort each wine's cheeses by score descending then alphabetically ascending,
+    # and keep only the top 5:
     for wine in scores:
         scores[wine] = sorted(scores[wine], key=lambda item: (-item[1], item[0]))[:5]
 
+    # Sort wines in ascending order with only cheeses (drop scores):
     result = sorted((wine, [cheese for cheese, _ in cheeses]) for wine, cheeses in scores.items())
+    # Optionally format result:
     return pformat(result, compact=True, width=120) if format else result
 
 
