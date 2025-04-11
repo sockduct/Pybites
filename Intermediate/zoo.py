@@ -35,25 +35,25 @@ learn together with other passionate Pythonistas...
 
 
 from __future__ import annotations
+from itertools import count
+from typing import Self
 
 
 class Animal:
-    sequence = 10_000
-    members: dict[str, int] = {}
+    _sequence = count(10_001)
+    _zoo: list[Animal] = []
 
     def __init__(self, name: str) -> None:
-        self.name = name
-        Animal.sequence += 1
-        Animal.members[name] = Animal.sequence
+        self.id = next(Animal._sequence)
+        self.name = name.title()
+        self._zoo.append(self)
 
     def __str__(self) -> str:
-        return f'{Animal.members[self.name]}. {self.name.title()}'
+        return f'{self.id}. {self.name}'
 
     @classmethod
     def zoo(cls: type[Animal]) -> str:
-        return '\n'.join(
-            f'{sequence}. {animal.title()}' for animal, sequence in Animal.members.items()
-        )
+        return '\n'.join(str(animal) for animal in cls._zoo)
 
 
 if __name__ == '__main__':
