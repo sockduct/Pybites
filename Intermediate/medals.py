@@ -9,30 +9,15 @@ of the data).
 '''
 
 
-from collections import Counter
-from pathlib import Path
-import sys
-
+from __future__ import annotations
 import pandas as pd
 
-sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from basetmpl import get_data, get_path
-
-
-CWD = Path(__file__).parent
-# Where to store retrieved data:
-DATADIR = CWD/'data'
-# Filename for retrieved data:
-DATAFILE = 'summer.csv'
-# For compatibility with bite:
-data = ''
+# Data location:
+data = 'https://bites-data.s3.us-east-2.amazonaws.com/summer.csv'
 
 
-def athletes_most_medals(data: str=data) -> pd.Series:
-    if not data:
-        data = get_path(datafile=DATAFILE, datadir=DATADIR)
-
+def athletes_most_medals(data: str=data) -> pd.Series[str]:
     df = pd.read_csv(data, na_filter=False)
     man = df.loc[df['Gender'] == 'Men', 'Athlete'].value_counts().head(1)
     woman = df.loc[df['Gender'] == 'Women', 'Athlete'].value_counts().head(1)
@@ -41,7 +26,4 @@ def athletes_most_medals(data: str=data) -> pd.Series:
 
 
 if __name__ == '__main__':
-    datapath = get_path(datafile=DATAFILE, datadir=DATADIR)
-    get_data(datafile=DATAFILE, datapath=datapath, verbose=False)
-
     print(athletes_most_medals())
