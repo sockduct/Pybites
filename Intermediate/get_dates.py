@@ -47,7 +47,7 @@ from enum import Enum
 from datetime import datetime
 from collections import Counter
 from contextlib import suppress
-from pprint import pprint
+from pprint import pformat, pprint
 
 
 class DateFormat(Enum):
@@ -57,7 +57,7 @@ class DateFormat(Enum):
     NONPARSABLE = -999
 
     @classmethod
-    def get_d_parse_formats(cls: DateFormat, val: int|None=None) -> list[str]|str:
+    def get_d_parse_formats(cls: type[DateFormat], val: int|None=None) -> list[str]|str:
         """ Arg:
         val(int | None) enum member value
         Returns:
@@ -112,18 +112,35 @@ def get_dates(dates: list[str]) -> list[datetime|str]:
     for date in dates:
         results.extend(_maybe_DateFormats(date))
 
-    first, second = Counter(results).most_common(2)
-    if first[1] == second[1]:
-        raise InfDateFmtError('No dominant date format')
-    elif first[0] == DateFormat.NONPARSABLE:
+    ranking = Counter(results).most_common()
+    if len(ranking) > 1:
+        first, second, *_ = ranking
+        if first[1] == second[1]:
+            raise InfDateFmtError('No dominant date format')
+    else:
+        first = ranking[0]
+
+    if first[0] == DateFormat.NONPARSABLE:
         raise InfDateFmtError('Most prevalent format is non-parsable')
 
     fmt_idx = first[0].value
+    dt_fmt = DateFormat.get_d_parse_formats(fmt_idx)
+    if isinstance(dt_fmt, list):
+        raise ValueError('Expected a single format string, got a list.')
     parsed = []
     for date in dates:
-        parse = 'Invalid'
+        '''
+        Alternative approach:
+        try:
+            date = datetime.strptime(date_str, d_parse_format)
+            date = datetime.strftime(date, "%Y-%m-%d")
+            out_dates.append(date)
+        except ValueError:
+            out_dates.append("Invalid")
+        '''
+        parse: str|datetime = 'Invalid'
         with suppress(ValueError):
-            parse = datetime.strptime(date, DateFormat.get_d_parse_formats(fmt_idx))
+            parse = datetime.strptime(date, dt_fmt)
         parsed.append(parse)
 
     return [
@@ -133,11 +150,27 @@ def get_dates(dates: list[str]) -> list[datetime|str]:
 
 
 if __name__ == '__main__':
-    date_list = [
-        '11/01/24',
-        '12/12/24',
-        '01/232/5',
-        '05/30/23',
-        '02/28/40'
+    date_lists = [
+        [
+            '11/01/24',
+            '12/12/24',
+            '01/232/5',
+            '05/30/23',
+            '02/28/40',
+        ],
+        [
+            'invalid'
+        ],
+        [
+            '01/02/23'
+        ],
+        [
+            '01/30/33'
+        ],
     ]
-    pprint(get_dates(date_list))
+    for date_list in date_lists:
+        print(f'Checking:\n{pformat(date_list)}')
+        try:
+            print(f'Results:\n{pformat(get_dates(date_list))}\n')
+        except InfDateFmtError as err:
+            print(f'Caught error:\n{err}\n')
