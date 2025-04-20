@@ -42,18 +42,22 @@ id,first_name,last_name,email
 
 
 def _split(line: str) -> list[str]:
-    return re.split(r',|\||;', line)
+    # return re.split(r',|\||;', line)
+    # Better:
+    return re.split(r'[,|;]', line)
 
 
-def convert_to_json(members: str=members) -> list[dict[str, str]]:
+def convert_to_json(members: str=members) -> str:
     result = []
-    for lineno, line in enumerate(members.split('\n')):
+    # for lineno, line in enumerate(members.strip().split('\n')):
+    # Better:
+    for lineno, line in enumerate(members.strip().splitlines()):
         if lineno == 0:
             keys = _split(line)
         else:
             result.append(dict(zip(keys, _split(line))))
 
-    return result
+    return json.dumps(result)
 
 
 if __name__ == '__main__':
