@@ -30,14 +30,15 @@ Bite and remember: keep calm and code in Python!
 
 
 from pprint import pprint
-import re
 
 
-CHARACTERS = ['Red Riding Hood',
-              # we're omitting 'mother' here for simplicity
-              # (= substring grandmother)
-              ('Grandmother', 'Grandma', 'Granny'),
-              'wolf', 'woodsman']
+CHARACTERS: list[str|tuple[str, ...]] = [
+    'Red Riding Hood',
+    # we're omitting 'mother' here for simplicity
+    # (= substring grandmother)
+    ('Grandmother', 'Grandma', 'Granny'),
+    'wolf', 'woodsman'
+]
 
 text = """
 Once upon a time, there was a little girl who lived in a village near the forest.  Whenever she went out, the little girl wore a red riding cloak, so everyone in the village called her Little Red Riding Hood.
@@ -88,7 +89,7 @@ def make_character_index(text: str=text, characters: list[str|tuple[str, ...]]=C
        - e.g. ('Grandmother', 'Grandma', 'Granny') -
        then return the former as key.
     """
-    tracking = {
+    tracking: dict[str, list[int]] = {
         key[0].lower() if isinstance(key, tuple) else key.lower(): [] for key in characters
     }
     chars = [
@@ -101,11 +102,11 @@ def make_character_index(text: str=text, characters: list[str|tuple[str, ...]]=C
             if isinstance(character, str):
                 if character in line.lower():
                     tracking[character].append(lineno)
-            elif character & set(re.split(r'\W+', line, flags=re.IGNORECASE)):
+            elif any(char in line.lower() for char in character):
                 tracking[(character & tracking.keys()).pop()].append(lineno)
 
     return tracking
 
 
 if __name__ == '__main__':
-    pprint(make_character_index())
+    pprint(make_character_index(), width=100)
