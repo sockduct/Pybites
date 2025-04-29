@@ -28,34 +28,40 @@ Good luck and keep calm and code in Python!
 
 import configparser
 from pathlib import Path
+import re
 
 
 class ToxIniParser:
-
     def __init__(self, ini_file: str|Path) -> None:
         """Use configparser to load ini_file into self.config"""
-        self._config = configparser.ConfigParser()
+        self.config = configparser.ConfigParser()
         with open(ini_file) as f:
-            self._config.read_file(f)
+            self.config.read_file(f)
 
     @property
     def number_of_sections(self) -> int:
         """Return the number of sections in the ini file.
            New to properties? -> https://pybit.es/articles/property-decorator
         """
-        return len(self._config.sections())
+        return len(self.config.sections())
 
     @property
-    def environments(self) -> list[str]:
+    def environments(self) -> list[str|None]:
         """Return a list of environments
            (= "envlist" attribute of [tox] section)"""
-        return self._config.get('tox', 'envlist', fallback=None).split(', ')
+        if envs := self.config.get('tox', 'envlist', fallback=None):
+            # Split on separators and prune out empty strings:
+            # return  [e for e in re.split(r'\s+|\s*,\s*', result.strip()) if e]
+            # Probably better - just split on "," or newlines and strip off
+            # excess whitespace:
+            return [env.strip() for env in re.split(r'\n|,', envs) if env]
+
+        return []
 
     @property
-    def base_python_versions(self) -> list[str]:
+    def base_python_versions(self) -> list[str|None]:
         """Return a list of all basepython across the ini file"""
-        return [
-            self._config.get(section, 'basepython', fallback=None)
-            for section in self._config.sections()
-            if self._config.get(section, 'basepython', fallback=None)
-        ]
+        return list({
+            bp for section in self.config.sections()
+            if (bp := self.config.get(section, 'basepython', fallback=None))
+        })
