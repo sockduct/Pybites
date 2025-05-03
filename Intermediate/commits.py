@@ -36,6 +36,8 @@ Good luck and keep calm and code in Python!
 '''
 
 from collections import Counter
+from collections.abc import Callable
+from datetime import timezone
 import os
 from pathlib import Path
 from pprint import pprint
@@ -50,8 +52,8 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from basetmpl import get_data, get_path
 
 
-commits = os.path.join(os.getenv("TMP", "/tmp"), 'commits')
 '''
+commits = os.path.join(os.getenv("TMP", "/tmp"), 'commits')
 urlretrieve(
     'https://bites-data.s3.us-east-2.amazonaws.com/git_log_stat.out',
     commits
@@ -67,12 +69,13 @@ DATADIR = CWD/'data'
 REMOTEFILE = 'git_log_stat.out'
 # Filename for retrieved data:
 LOCALFILE = 'commits.txt'
-
+#
+commits = DATADIR/LOCALFILE
 
 
 def get_min_max_amount_of_commits(
-    commit_log: str = commits,
-    year: int = None
+    commit_log: Path|str = commits,
+    year: int|None = None
 ) -> tuple[str, str]:
     """
     Calculate the amount of inserts / deletes per month from the
@@ -83,25 +86,83 @@ def get_min_max_amount_of_commits(
 
     Returns a tuple of (least_active_month, most_active_month)
     """
-    commits = Counter()
-    # Need to account for year filter...
+    commits: Counter[str] = Counter()
     with open(commit_log, mode='r', encoding='utf8') as infile:
-        pattern = (
-            r'Date:\s+(\w+ \w+ \d+ \d{2}:\d{2}:\d{2} \d{4} [+-]\d{4}) | '
-            r'\d+ files? changed, (\d+) insertions?\(\+\), (\d+) deletions?\(-\)'
+        # Somewhat fragile - using alternate approach:
+        pattern1 = (
+            r'Date:\s+(?P<date>\w+ \w+ \d+ \d{2}:\d{2}:\d{2} \d{4} [+-]\d{4})'
+            r' \| \d+ files? changed,'
+            r'(?: (?P<insertions>\d+) insertions?\(\+\),?)?'
+            r'(?: (?P<deletions>\d+) deletions?\(-\))?'
         )
         for lineno, line in enumerate(infile, 1):
-            if not (result := re.match(pattern, line, re.IGNORECASE)):
+            # Somewhat fragile - using alternate approach:
+            '''
+            if not (result1 := re.match(pattern1, line, re.IGNORECASE)):
                 raise ValueError(f'Unable to parse line #{lineno}:\n{line}')
 
-            dt, insertions, deletions = parse(result[1]), result[2], result[3]
+            dt1, insertions1, deletions1 = (
+                parse(result1['date']),
+                int(result1['insertions'] or 0),
+                int(result1['deletions'] or 0)
+            )
+            '''
+
+            dt_part, stats_part = line.split('|')
+            dt = parse(dt_part.replace('Date:', '').strip())
+            if year and year != dt.year:
+                continue
+
+            # Somewhat fragile - using alternate approach:
+            pattern2 = (
+                r'(?:.*?(?P<insertions>\d+)\s+insertions?\(\+\))?'
+                r'(?:.*?(?P<deletions>\d+)\s+deletions?\(-\))?'
+            )
+            # Somewhat fragile - using alternate approach:
+            '''
+            if not (result2 := re.search(pattern2, stats_part, re.IGNORECASE)):
+                raise ValueError(f'Unable to parse line #{lineno}:\n{line}')
+
+            insertions2 = int(result2['insertions'] or 0)
+            deletions2 = int(result2['deletions'] or 0)
+            '''
+
+            parts = stats_part.split(',')
+            insertions: str|int
+            deletions: str|int
+            extract: Callable[[str], int] = lambda e: int(e.strip().split()[0])
+            if len(parts) == 3:
+                _, insertions, deletions = parts
+            elif 'insertion' in stats_part:
+                _, insertions = parts
+                deletions = 0
+            elif 'deletion' in stats_part:
+                _, deletions = parts
+                insertions = 0
+            else:
+                raise ValueError(f'Unable to parse line #{lineno}:\n{line}')
+
+            if isinstance(insertions, str):
+                insertions = extract(insertions)
+            if isinstance(deletions, str):
+                deletions = extract(deletions)
+
+
+            # Convert to UTC - not needed:
+            # dt_utc = dt.astimezone(timezone.utc)
+            # if not year or year == dt.year:
+            # Above moved up...
             commits[YEAR_MONTH.format(y=dt.year, m=dt.month)] += insertions + deletions
 
-    return commits
+    most_active, *_, least_active = commits.most_common()
+    # most/least_active are YYYY-MM, # - just return first part:
+    return least_active[0], most_active[0]
+    # Debugging:
+    # return commits
 
 
 if __name__ == '__main__':
     datapath = get_path(datafile=LOCALFILE, datadir=DATADIR)
     get_data(datafile=REMOTEFILE, datapath=datapath, verbose=False)
 
-    pprint(get_min_max_amount_of_commits(Path('data')/LOCALFILE))
+    pprint(get_min_max_amount_of_commits(datapath))
