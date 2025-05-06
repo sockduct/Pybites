@@ -24,8 +24,10 @@ from csv import DictReader
 import os
 from pathlib import Path
 import sys
+from typing import cast
 from urllib.request import urlretrieve
 
+from pydantic import BaseModel, ValidationError
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
@@ -34,6 +36,8 @@ from basetmpl import get_data, get_path
 
 TMP = os.getenv("TMP", "/tmp")
 LOGS = 'bite_output_log.txt'
+# Added invalid record to test validation:
+# LOGS = 'bite_output_log2.txt'
 '''
 DATA = os.path.join(TMP, LOGS)
 S3 = 'https://bites-data.s3.us-east-2.amazonaws.com'
@@ -50,48 +54,117 @@ DATAFILE = LOGS
 DATA = DATADIR/DATAFILE
 
 
+class Record(BaseModel):
+    bite: int
+    user: str
+    completed: bool
+
+
 class BiteStats:
-    def __init__(self, data: str|Path=DATA) -> None:
+    def __init__(self, data: str|Path=DATA, validate: bool=False) -> None:
+        self.validated = validate
         with open(data, encoding='utf8') as infile:
-            self.rows = list(DictReader(infile))
+            if validate:
+                self.rows: list[Record|dict[str, str]] = []
+                row: dict[str, str]
+                for i, row in enumerate(DictReader(infile), 1):
+                    try:
+                        self.rows.append(Record(**row))  # type: ignore[arg-type]
+                    except ValidationError as err:
+                        print(f'❌ Validation failed on row {i}: {row}\n{err}')
+            else:
+                self.rows = list(DictReader(infile))
+
 
     @property
     def number_bites_accessed(self) -> int:
         """Get the number of unique Bites accessed"""
-        return len({row['bite'] for row in self.rows})
+        if self.validated:
+            return len({row.bite for row in self.rows})  # type: ignore[union-attr]
+        else:
+            return len({row['bite'] for row in self.rows})  # type: ignore[index]
 
     @property
     def number_bites_resolved(self) -> int:
         """Get the number of unique Bites resolved (completed=True)"""
-        return len({row['bite'] for row in self.rows if row['completed'] == 'True'})
+        if self.validated:
+            return len({row.bite for row in self.rows if row.completed})  # type: ignore[union-attr]
+        else:
+            return len(
+                {
+                    row['bite']  # type: ignore[index]
+                    for row in self.rows if row['completed'] == 'True'  # type: ignore[index]
+                }
+            )
 
     @property
     def number_users_active(self) -> int:
         """Get the number of unique users in the data set"""
-        return len({row['user'] for row in self.rows})
+        if self.validated:
+            return len({row.user for row in self.rows})  # type: ignore[union-attr]
+        else:
+            return len({row['user'] for row in self.rows})  # type: ignore[index]
 
     @property
     def number_users_solving_bites(self) -> int:
         """Get the number of unique users that resolved
            one or more Bites"""
-        return len({row['user'] for row in self.rows if row['completed'] == 'True'})
+        if self.validated:
+            return len({row.user for row in self.rows if row.completed})  # type: ignore[union-attr]
+        else:
+            return len(
+                {
+                    row['user']  # type: ignore[index]
+                    for row in self.rows if row['completed'] == 'True'  # type: ignore[index]
+                }
+            )
 
     @property
     def top_bite_by_number_of_clicks(self) -> str:
         """Get the Bite that got accessed the most
            (= in most rows)"""
         # Extract first tuple, first element (tuple=element, count):
-        return Counter(row['bite'] for row in self.rows).most_common(1)[0][0]
+        if self.validated:
+            # Because requested return type is str:
+            return str(
+                Counter(
+                    row.bite for row in self.rows  # type: ignore[union-attr]
+                ).most_common(1)[0][0]
+            )
+        else:
+            return Counter(
+                row['bite'] for row in self.rows  # type: ignore[index]
+            ).most_common(1)[0][0]
 
     @property
     def top_user_by_bites_completed(self) -> str:
         """Get the user that completed the most Bites"""
         # Extract first tuple, first element (tuple=element, count):
-        return Counter(
-            row['user'] for row in self.rows if row['completed'] == 'True'
-        ).most_common(1)[0][0]
+        if self.validated:
+            return Counter(
+                row.user for row in self.rows if row.completed  # type: ignore[union-attr]
+            ).most_common(1)[0][0]
+        else:
+            return Counter(
+                row['user']  # type: ignore[index]
+                for row in self.rows if row['completed'] == 'True'  # type: ignore[index]
+            ).most_common(1)[0][0]
 
 
 if __name__ == '__main__':
     datapath = get_path(datafile=DATAFILE, datadir=DATADIR)
     get_data(datafile=DATAFILE, datapath=datapath, verbose=False)
+
+    print('Original - unvalidated:')
+    bitestats = BiteStats()
+    for var in vars(BiteStats):
+        if var.startswith('_'):
+            continue
+        print(f'{var} => {getattr(bitestats, var)}')
+
+    print('\nUpdated - validated:')
+    validated_bitestats = BiteStats(validate=True)
+    for var in vars(BiteStats):
+        if var.startswith('_'):
+            continue
+        print(f'{var} => {getattr(validated_bitestats, var)}')
