@@ -47,20 +47,21 @@ def top_python_questions(url: str=cached_so_url) -> list[tuple[str, int]]:
     html_doc = requests.get(cached_so_url).text
     soup = BeautifulSoup(html_doc, 'html.parser')
     # question-hyperlink class:
+    questions = []
     for a_tag in soup.find_all('a', 'question-hyperlink'):
         # Need to navigate up to find votes
         # Extract question ID from href and match it against this:
         # <div class="question-summary" id="question-summary-15112125">
-        ...
-    '''
-    # votes (vote-count-post class)
-    for span_tag in soup.find_all('span', 'vote-count-post'):
-        ...
-    # number of views # (views class)
-    for div_tag in soup.find_all('div', 'views'):
-        ...
-    '''
-    # into a list
+        question = str(a_tag.string)
+        top = a_tag.parent.parent.parent
+        # votes (vote-count-post class)
+        votes = str(top.find('span', 'vote-count-post').string)
+        views = str(top.find('div', 'views').string).strip()
+        questions.append(dict(question=question, votes=votes, views=views))
+
+    pprint(questions)
+    # Questions with > 1 million views:
+    ...
 
 
 if __name__ == '__main__':
