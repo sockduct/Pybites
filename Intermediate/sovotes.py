@@ -22,8 +22,11 @@ from collections.abc import Callable
 from pathlib import Path
 from pprint import pprint
 import sys
+from types import ModuleType
+from typing import TypedDict
 
 import requests
+requests_cache: ModuleType | None
 try:
     import requests_cache
 except ImportError:
@@ -36,21 +39,43 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 cached_so_url = 'https://bites-data.s3.us-east-2.amazonaws.com/so_python.html'
 
 
-def top_python_questions(url: str=cached_so_url) -> list[tuple[str, int]]:
-    """Use requests to retrieve the url / html,
-       parse the questions out of the html with BeautifulSoup,
-       filter them by >= 1m views ("..m views").
-       Return a list of (question, num_votes) tuples ordered
-       by num_votes descending (see tests for expected output).
-    """
+class Question(TypedDict):
+    question: str
+    votes: int
+    views: str
+
+
+def top_python_questions(url: str=cached_so_url, *, filtered: bool=True,
+                         debug: bool=False) -> list[tuple[str, int]]:
+    '''
+    Use requests to retrieve the url / html, parse the questions out of the html
+    with BeautifulSoup, filter them by >= 1m views ("..m views").  Return a list
+    of (question, num_votes) tuples ordered by num_votes descending (see tests
+    for expected output).
+    '''
     if requests_cache:
         requests_cache.install_cache('pybites-s3-cache')
     html_doc = requests.get(cached_so_url).text
     soup = BeautifulSoup(html_doc, 'html.parser')
 
-    high: Callable[[dict[str, str]], bool] = lambda q: q['views'].split()[0].endswith('m')
+    '''
+    Alternative solution:
+    questions = soup.select(".question-summary")
+    res = []
 
-    questions = []
+    for que in questions:
+        question = que.select_one('.question-hyperlink').getText()
+        votes = que.select_one('.vote-count-post').getText()
+
+        views = que.select_one('.views').getText().strip()
+        if 'm views' not in views:
+            continue
+
+        res.append((question, int(votes)))
+
+    return sorted(res, key=operator.itemgetter(1), reverse=True)
+    '''
+    questions: list[Question] = []
     # question-hyperlink class:
     for a_tag in soup.find_all('a', 'question-hyperlink'):
         if not a_tag['href'].startswith('/questions/'):
@@ -59,13 +84,17 @@ def top_python_questions(url: str=cached_so_url) -> list[tuple[str, int]]:
         # Need to navigate up to find votes
         top = a_tag.parent.parent.parent
         # votes (vote-count-post class)
-        votes = str(top.find('span', 'vote-count-post').string)
+        votes = int(str(top.find('span', 'vote-count-post').string))
         views = str(top.find('div', 'views').string).strip()
         questions.append(dict(question=question, votes=votes, views=views))
         # Debugging:
-        print(f'Found:  Views:  {views:>10}, Votes:  {votes:>4}, Question: {question}')
+        if debug:
+            print(f'Found:  Views:  {views:>10}, Votes:  {votes:>4}, Question: {question}')
 
-    # Questions with > 1 million views:
+    # Filter questions with > 1 million views:
+    high_filter: Callable[[Question], bool] = lambda q: q['views'].split()[0].endswith('m')
+    high = high_filter if filtered else lambda q: True
+
     return sorted(
         ((question['question'], question['votes']) for question in questions if high(question)),
         key=lambda x: x[1], reverse=True
@@ -73,4 +102,4 @@ def top_python_questions(url: str=cached_so_url) -> list[tuple[str, int]]:
 
 
 if __name__ == '__main__':
-    pprint(top_python_questions())
+    pprint(top_python_questions(debug=True, filtered=True), width=132)
