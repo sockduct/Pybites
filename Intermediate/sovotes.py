@@ -18,6 +18,7 @@ Enjoy and code more Python!
 '''
 
 
+from collections.abc import Callable
 from pathlib import Path
 from pprint import pprint
 import sys
@@ -46,22 +47,29 @@ def top_python_questions(url: str=cached_so_url) -> list[tuple[str, int]]:
         requests_cache.install_cache('pybites-s3-cache')
     html_doc = requests.get(cached_so_url).text
     soup = BeautifulSoup(html_doc, 'html.parser')
-    # question-hyperlink class:
+
+    high: Callable[[dict[str, str]], bool] = lambda q: q['views'].split()[0].endswith('m')
+
     questions = []
+    # question-hyperlink class:
     for a_tag in soup.find_all('a', 'question-hyperlink'):
-        # Need to navigate up to find votes
-        # Extract question ID from href and match it against this:
-        # <div class="question-summary" id="question-summary-15112125">
+        if not a_tag['href'].startswith('/questions/'):
+            continue
         question = str(a_tag.string)
+        # Need to navigate up to find votes
         top = a_tag.parent.parent.parent
         # votes (vote-count-post class)
         votes = str(top.find('span', 'vote-count-post').string)
         views = str(top.find('div', 'views').string).strip()
         questions.append(dict(question=question, votes=votes, views=views))
+        # Debugging:
+        print(f'Found:  Views:  {views:>10}, Votes:  {votes:>4}, Question: {question}')
 
-    pprint(questions)
     # Questions with > 1 million views:
-    ...
+    return sorted(
+        ((question['question'], question['votes']) for question in questions if high(question)),
+        key=lambda x: x[1], reverse=True
+    )
 
 
 if __name__ == '__main__':
