@@ -22,12 +22,14 @@ you can run against Pycon 2020's data...
 '''
 
 
-from urllib.request import urlretrieve
 import os
 from pathlib import Path
+from pprint import pprint
+from re import split
 from shutil import copy2
+from urllib.request import urlretrieve
 
-import gender_guesser.detector as gender
+import gender_guesser.detector as gender  # type: ignore
 from bs4 import BeautifulSoup as Soup
 
 TMP = Path(os.getenv("TMP", "/tmp"))
@@ -42,24 +44,44 @@ if not PYCON_HTML.exists():
         copy2(PYCON_HTML, DATA / PYCON_HTML.name)
 
 
-def _get_soup(html=PYCON_HTML):
+def _get_soup(html: Path=PYCON_HTML) -> Soup:
     return Soup(html.read_text(encoding="utf-8"), "html.parser")
 
 
-def get_pycon_speaker_first_names(soup=None):
+def get_pycon_speaker_first_names(soup: Soup|None=None) -> list[str]:
     """Parse the PYCON_HTML using BeautifulSoup, extracting all
        speakers (class "speaker"). Note that some items contain
        multiple speakers so you need to extract them.
        Return a list of first names
     """
-    pass
+    if soup is None:
+        soup = _get_soup()
+
+    res = [tag.get_text(strip=True) for tag in soup.find_all(class_='speaker')]
+
+    res_flat = []
+    for element in res:
+        res_flat.extend(split(r'\s*/\s*|\s*,\s*', element))
+
+    res_first = []
+    for element in res_flat:
+        names = element.split()
+        # For first name initial followed by period, use 2nd name
+        # People using first name initial only typically go by their 2nd name
+        first = names[0] if names[0][1] != '.' else names[1]
+        res_first.append(first)
+
+    return res_first
 
 
-def get_percentage_of_female_speakers(first_names):
+def get_percentage_of_female_speakers(first_names: list[str]) -> float:
     """Run gender_guesser on the names returning a percentage
        of female speakers (female and mostly_female),
        rounded to 2 decimal places."""
-    pass
+    detector = gender.Detector()
+    count = sum('female' in detector.get_gender(name) for name in first_names)
+
+    return round(count/len(first_names) * 100, 2)
 
 
 if __name__ == '__main__':
