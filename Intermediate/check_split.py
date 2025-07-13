@@ -19,26 +19,25 @@ input parameters and expected return values.
 
 
 from collections.abc import Callable
+from decimal import Decimal, ROUND_DOWN as ROUND
 from operator import add, sub
 
 
-type Numeric = int | float
-
-
-def get_individuals(total: float, individual: float, people: int,
-                    op: Callable[[Numeric, Numeric], Numeric]) -> list[Numeric]:
+def get_individuals(total: Decimal, individual: Decimal, people: int,
+                    op: Callable[[Decimal, Decimal], Decimal]) -> list[Decimal]:
     for i in range(1, people):
-        individuals = [op(individual, 0.01)] * i + [individual] * (people - i)
+        total = total.quantize(Decimal('1.01'), rounding=ROUND)
+        individuals = [op(individual, Decimal('0.01'))] * i + [individual] * (people - i)
         individual_total = sum(individuals)
-        print(f'{total=}, {individual=}, {people=}, {i=}, {individuals=}, {individual_total=}')
-        if sum(individuals) == total:
+        ### print(f'{total=}, {individual=}, {people=}, {i=}, {individuals=}, {individual_total=}')
+        if individual_total == total:
             return individuals
 
     raise ValueError('Unable to find matching total.')
 
 
-def get_amounts(total: float, people: int) -> list[float]:
-    individual = round(total/people, 2)
+def get_amounts(total: Decimal, people: int) -> list[Decimal]:
+    individual = Decimal(total/people).quantize(Decimal('1.01'), rounding=ROUND)
 
     if (people_total := individual * people) == total:
         return [individual] * people
@@ -48,7 +47,7 @@ def get_amounts(total: float, people: int) -> list[float]:
         return get_individuals(total, individual, people, sub)
 
 
-def check_split(item_total: str, tax_rate: str, tip: str, people: int) -> tuple[str, list[float]]:
+def check_split(item_total: str, tax_rate: str, tip: str, people: int) -> tuple[str, list[Decimal]]:
     """Calculate check value and evenly split.
 
        :param item_total: str (e.g. '$8.68')
@@ -63,11 +62,29 @@ def check_split(item_total: str, tax_rate: str, tip: str, people: int) -> tuple[
     tax = float(tax_rate.rstrip('%'))/100
     tip_pct = float(tip.rstrip('%'))/100
 
-    grand_total = round(total * (1 + tax) * (1 + tip_pct), 2)
+    grand_total3 = total * (1 + tax) * (1 + tip_pct)
+    grand_total = Decimal(
+        total * (1 + tax) * (1 + tip_pct)).quantize(Decimal('1.01'), rounding=ROUND
+    )
     amounts = get_amounts(grand_total, people)
 
-    return f'${grand_total}', amounts
+    return f'${grand_total:0.2f}', f'{grand_total3:0.3f}', amounts
 
 
 if __name__ == '__main__':
-    print(check_split('$107.93', '6.3%', '22%', 3))
+    ## print(check_split('$107.93', '6.3%', '22%', 3))
+    for args, expected in [
+        (('$8.68', '4.75%', '10%', 3), '$10.00'),
+        (('$8.44', '6.75%', '11%', 3), '$10.00'),
+        (('$9.99', '3.25%', '10%', 2), '$11.34'),
+        (('$186.70', '6.75%', '18%', 6), '$235.17'),
+        (('$191.57', '6.75%', '15%', 6), '$235.18'),
+        (('$0.00', '0%', '0%', 1), '$0.00'),
+        (('$100.03', '0%', '0%', 4), '$100.03'),
+        (('$141.86', '2%', '18%', 9), '$170.75'),
+        (('$16.99', '10%', '20%', 1), '$22.43'),
+        (('$16.99', '10%', '20%', 2), '$22.43'),
+        (('$16.99', '10%', '20%', 3), '$22.43'),
+        (('$16.99', '10%', '20%', 4), '$22.43'),
+    ]:
+        print(f'{args} => {check_split(*args)}, {expected=}')
