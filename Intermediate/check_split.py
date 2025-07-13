@@ -19,17 +19,22 @@ input parameters and expected return values.
 
 
 from collections.abc import Callable
-from decimal import Decimal, ROUND_DOWN as ROUND
+from decimal import Decimal
 from operator import add, sub
 
 
+# Decimal digits to keep:
+Q = Decimal('0.01')
+
+
 def get_individuals(total: Decimal, individual: Decimal, people: int,
-                    op: Callable[[Decimal, Decimal], Decimal]) -> list[Decimal]:
+                    op: Callable[[Decimal, Decimal], Decimal], *,
+                    debug: bool=False) -> list[Decimal]:
     for i in range(1, people):
-        total = total.quantize(Decimal('1.01'), rounding=ROUND)
         individuals = [op(individual, Decimal('0.01'))] * i + [individual] * (people - i)
         individual_total = sum(individuals)
-        ### print(f'{total=}, {individual=}, {people=}, {i=}, {individuals=}, {individual_total=}')
+        if debug:
+            print(f'{total=}, {individual=}, {people=}, {i=}, {individuals=}, {individual_total=}')
         if individual_total == total:
             return individuals
 
@@ -37,7 +42,7 @@ def get_individuals(total: Decimal, individual: Decimal, people: int,
 
 
 def get_amounts(total: Decimal, people: int) -> list[Decimal]:
-    individual = Decimal(total/people).quantize(Decimal('1.01'), rounding=ROUND)
+    individual = Decimal(total/people).quantize(Q)
 
     if (people_total := individual * people) == total:
         return [individual] * people
@@ -58,17 +63,24 @@ def check_split(item_total: str, tax_rate: str, tip: str, people: int) -> tuple[
        :return: tuple of (grand_total: str, splits: list)
                 e.g. ('$10.00', [3.34, 3.33, 3.33])
     """
-    total = float(item_total.lstrip('$'))
-    tax = float(tax_rate.rstrip('%'))/100
-    tip_pct = float(tip.rstrip('%'))/100
+    subtotal = Decimal(item_total.lstrip('$'))
+    tax = Decimal(tax_rate.rstrip('%'))/100
+    tip_pct = Decimal(tip.rstrip('%'))/100
 
-    grand_total3 = total * (1 + tax) * (1 + tip_pct)
-    grand_total = Decimal(
-        total * (1 + tax) * (1 + tip_pct)).quantize(Decimal('1.01'), rounding=ROUND
-    )
+    tax_total = (subtotal * (1 + tax)).quantize(Q)
+    grand_total = (tax_total * (1 + tip_pct)).quantize(Q)
+
+    '''
+    Alternative:
+    split = (grand_total / people).quantize(ONE_CENT, rounding=ROUND_DOWN)
+    extra_cents = (grand_total - split * people) / ONE_CENT
+
+    return f'${grand_total}', [split + ONE_CENT if i < extra_cents else split
+                               for i in range(people)]
+    '''
     amounts = get_amounts(grand_total, people)
 
-    return f'${grand_total:0.2f}', f'{grand_total3:0.3f}', amounts
+    return f'${grand_total}', amounts
 
 
 if __name__ == '__main__':
