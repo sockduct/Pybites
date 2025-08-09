@@ -89,13 +89,27 @@ def get_octal_from_file_permission(rwx: str) -> str:
        rw-r--r-- => 644 (user = 4 + 2, group = 4, other = 4)
        rwxrwxrwx => 777 (user/group/other all have 4 + 2 + 1)
        r-xr-xr-- => 554 (user/group = 4 + 1, other = 4)
+
+
+       Alternative approach:
+       rwxs = '--- --x -w- -wx r-- r-x rw- rwx'.split()
+       octals = [str(i) for i in range(0, 8)]
+       permissions = dict(zip(rwxs, octals))
+
+       parts = [rwx[i:i+3] for i in range(0, len(rwx), 3)]
+       return ''.join(
+           permissions[p]
+           for p in parts
+       )
     """
     if not isinstance(rwx, str) or len(rwx) != 9:
         raise ValueError(f'Expected string of 9 digits, got:  {rwx}')
 
     vals = {
-        item: get_octal_val(itemval)
-        for item, itemval in zip(['user', 'group', 'other'], batched(rwx, 3, strict=True), strict=True)
+        item: get_octal_val((user, group, other))
+        # Would like to use strict=True in batched but requires Python v3.13
+        # PyBites platform is at v3.12
+        for item, (user, group, other) in zip(['user', 'group', 'other'], batched(rwx, 3), strict=True)
     }
 
     return f'{vals["user"]}{vals["group"]}{vals["other"]}'
