@@ -62,6 +62,17 @@ def get_top_titles(url: str, top: int=5) -> list[Entry]:
     """Parse the titles (class 'title') using the soup object.
        Return a list of top (default = 5) titles ordered descending
        by number of points and comments.
+
+       Alternative solution:
+       ret = []
+       for title in soup.find_all('span', {'class': 'title'}):
+           votes_and_comments = title.find_next('td').text
+           title = title.text.strip()
+           m = re.search('(\\d+) points?.*(\\d+) comments?', votes_and_comments, re.DOTALL)
+           points, comments = m.groups()
+           ret.append(Entry(title, int(points), int(comments)))
+
+       return sorted(ret, key=itemgetter(1, 2), reverse=True)[:top]
     """
     soup = _create_soup_obj(url)
 
@@ -70,19 +81,19 @@ def get_top_titles(url: str, top: int=5) -> list[Entry]:
     for element in soup.select('span.title, span.controls'):
         match element.get('class'):
             case ['title']:
-                title = element.a.text
+                title = element.text.strip()
             case ['controls']:
                 data = element.select('span.smaller')[0].text
                 points, comments = data.split('|')
-                points = int(points.strip().split()[0])
-                comments = int(comments.strip().split()[0])
+                points_int = int(points.strip().split()[0])
+                comments_int = int(comments.strip().split()[0])
 
-                entries.append(Entry(title, points, comments))
+                entries.append(Entry(title, points_int, comments_int))
                 title = 'Unknown'
             case _:
                 continue
 
-    return entries
+    return sorted(entries, key=lambda e: e.points + e.comments, reverse=True)[:top]
 
 
 if __name__ == '__main__':
