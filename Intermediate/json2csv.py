@@ -33,7 +33,7 @@ import json
 from json.decoder import JSONDecodeError
 import os
 from pathlib import Path
-from pprint import pprint
+from pprint import pprint, pformat
 
 import requests
 
@@ -42,7 +42,7 @@ EXCEPTION = 'exception caught'
 TMP = Path(os.getenv("TMP", "/tmp"))
 
 
-def convert_to_csv(json_file):
+def convert_to_csv(json_file: Path) -> None:
     """Read/load the json_file (local file downloaded to /tmp) and
        convert/write it to defined csv_file.
         The data is in mounts > collected
@@ -62,9 +62,7 @@ def convert_to_csv(json_file):
     with open(TMP/json_file, encoding='utf8') as infile:
         data = json.load(infile)
 
-    pprint(data)
-
-    with open(csv_file, encoding='utf8') as outfile:
+    with open(csv_file, mode='w', newline='', encoding='utf8') as outfile:
         fieldnames = data['mounts']['collected'][0].keys()
         writer = csv.DictWriter(outfile, fieldnames=fieldnames)
         writer.writeheader()
@@ -72,12 +70,50 @@ def convert_to_csv(json_file):
             writer.writerow(items)
 
 
-if __name__ == '__main__':
+def main(verbose: bool=False) -> None:
     s3_bucket = 'https://bites-data.s3.us-east-2.amazonaws.com/mount-data{}.json'
     for file in range(1, 4):
         target_file = TMP/s3_bucket.format(file).split('/')[-1]
         with open(target_file, 'w', encoding='utf8') as outfile:
-            data = requests.get(s3_bucket.format(file)).json()
+            resp = requests.get(s3_bucket.format(file))
+
+            # Debugging:
+            if verbose:
+                for i, line in enumerate(pformat(resp.text).splitlines()):
+                    print(f'{i:2} {line}')
+
+            try:
+                data = resp.json()
+            except JSONDecodeError as err:
+                print(f'Error decoding data as JSON:\n{err}')
+                continue
+
             json.dump(data, outfile)
 
-        print(f'Invoking {convert_to_csv(target_file)} with file #{file}...')
+        print(f'Invoked {convert_to_csv(target_file)=} with file #{file}...\n')
+
+        if verbose:
+            csv_file = TMP / target_file.name.replace('.json', '.csv')
+
+            print(f'{csv_file}:')
+            with open(csv_file, encoding='utf8') as infile:
+                reader = csv.DictReader(infile)
+                for row in reader:
+                    print(row)
+
+            print('\nReading file as a list instead of a dict:')
+            with open(csv_file, encoding='utf8') as infile:
+                reader = csv.reader(infile)
+                for row in reader:
+                    print(row)
+
+            print('\nRaw file:')
+            with open(csv_file, encoding='utf8') as infile:
+                for row in infile:
+                    print(row)
+
+            print()
+
+
+if __name__ == '__main__':
+    main(verbose=True)
