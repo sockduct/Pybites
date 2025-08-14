@@ -59,15 +59,32 @@ def convert_to_csv(json_file: Path) -> None:
     """  # noqa E501
     csv_file = TMP / json_file.name.replace('.json', '.csv')
 
-    with open(TMP/json_file, encoding='utf8') as infile:
-        data = json.load(infile)
+    with open(json_file, encoding='utf8') as infile:
+        try:
+            '''
+            Alternatively:
+            data = json.loads(f.read())['mounts']['collected']
+            '''
+            data = json.load(infile)
+        except JSONDecodeError as err:
+            print(EXCEPTION)
+            raise
 
-    with open(csv_file, mode='w', newline='', encoding='utf8') as outfile:
-        fieldnames = data['mounts']['collected'][0].keys()
-        writer = csv.DictWriter(outfile, fieldnames=fieldnames)
-        writer.writeheader()
-        for items in data['mounts']['collected']:
-            writer.writerow(items)
+        '''
+        Alternatively:
+        with open(csv_file, 'w') as out:
+            writer = csv.writer(out)
+            writer.writerow(data[0].keys())
+
+            for row in data:
+                writer.writerow(row.values())
+        '''
+        with open(csv_file, mode='w', newline='', encoding='utf8') as outfile:
+            fieldnames = data['mounts']['collected'][0].keys()
+            writer = csv.DictWriter(outfile, fieldnames=fieldnames)
+            writer.writeheader()
+            for items in data['mounts']['collected']:
+                writer.writerow(items)
 
 
 def main(verbose: bool=False) -> None:
@@ -79,6 +96,7 @@ def main(verbose: bool=False) -> None:
 
             # Debugging:
             if verbose:
+                print(f'Text from {target_file}:')
                 for i, line in enumerate(pformat(resp.text).splitlines()):
                     print(f'{i:2} {line}')
 
@@ -90,7 +108,8 @@ def main(verbose: bool=False) -> None:
 
             json.dump(data, outfile)
 
-        print(f'Invoked {convert_to_csv(target_file)=} with file #{file}...\n')
+        print(f'\nInvoking convert_to_csv({target_file})...')
+        convert_to_csv(target_file)
 
         if verbose:
             csv_file = TMP / target_file.name.replace('.json', '.csv')
@@ -103,14 +122,14 @@ def main(verbose: bool=False) -> None:
 
             print('\nReading file as a list instead of a dict:')
             with open(csv_file, encoding='utf8') as infile:
-                reader = csv.reader(infile)
-                for row in reader:
-                    print(row)
+                reader2 = csv.reader(infile)
+                for row2 in reader2:
+                    print(row2)
 
             print('\nRaw file:')
             with open(csv_file, encoding='utf8') as infile:
-                for row in infile:
-                    print(row)
+                for row3 in infile:
+                    print(row3)
 
             print()
 
