@@ -34,7 +34,7 @@ GRAVATAR_URL = ("https://www.gravatar.com/avatar/"
                 "{hashed_email}?s={size}&r=g&d=robohash")
 
 
-def create_gravatar_url(email, size=200):
+def create_gravatar_url(email: str, size: int=200) -> str:
     """Use GRAVATAR_URL above to create a gravatar URL.
 
        You need to create a hash of the email passed in.
@@ -44,8 +44,24 @@ def create_gravatar_url(email, size=200):
        For Python check hashlib check out (md5 / hexdigest):
        https://docs.python.org/3/library/hashlib.html#hashlib.hash.hexdigest
     """
-    pass
+    email_bytes = bytes(email.lower().strip(), encoding='utf8')
+    email_md5hd = hashlib.md5(email_bytes).hexdigest()
+    return GRAVATAR_URL.format(hashed_email=email_md5hd, size=size)
 
 
 if __name__ == '__main__':
-    ...
+    for *args, expected in (
+        ("bob@pybit.es",
+         'https://www.gravatar.com/avatar/5b13356d467af88631503c27a3d0e0cf?s=200&r=g&d=robohash'),
+        ("bob@pybit.es", 300,
+         'https://www.gravatar.com/avatar/5b13356d467af88631503c27a3d0e0cf?s=300&r=g&d=robohash'),
+        ("bob@pybit.es ", 300,
+         'https://www.gravatar.com/avatar/5b13356d467af88631503c27a3d0e0cf?s=300&r=g&d=robohash'),
+        ("bob@pybit.ES ", 300,
+         'https://www.gravatar.com/avatar/5b13356d467af88631503c27a3d0e0cf?s=300&r=g&d=robohash')
+    ):
+        print(f'\nInvoking create_gravatar_url with {args}...')
+        # Could fix but kludgey and this is elegant:
+        result = create_gravatar_url(*args)  # type: ignore
+        print(f'{result} =?=\n{expected}')
+        assert result == expected
