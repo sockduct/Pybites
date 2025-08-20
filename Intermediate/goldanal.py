@@ -16,6 +16,7 @@ years as a tuple:
 
 
 from itertools import pairwise
+from operator import itemgetter
 
 
 # https://pkgstore.datahub.io/core/gold-prices/annual_csv/data/343f626dd4f7bae813cfaac23fccd1bc/annual_csv.csv
@@ -50,7 +51,10 @@ def years_gold_value_decreased(gold_prices: str = gold_prices) -> tuple[int, int
         year2: gold_data[year2] - gold_data[year1] for year1, year2 in pairwise(gold_data)
     }
 
-    ...
+    most_down_year = int(min(change_data.items(), key=itemgetter(1))[0])
+    most_up_year = int(max(change_data.items(), key=itemgetter(1))[0])
+
+    return most_down_year, most_up_year
 
 
 if __name__ == '__main__':
