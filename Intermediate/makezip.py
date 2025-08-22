@@ -41,7 +41,7 @@ The order of the 3 files does not really matter, as long as you get the latest 3
 from datetime import datetime
 import os
 from pathlib import Path
-from zipfile import ZipFile
+from zipfile import ZipFile, ZIP_DEFLATED
 
 
 TMP = Path(os.getenv("TMP", "/tmp"))
@@ -50,7 +50,12 @@ ZIP_FILE = 'logs.zip'
 
 
 def zip_last_n_files(directory: Path=LOG_DIR, zip_file: str=ZIP_FILE, n: int=3) -> None:
-    pass
+    cwd = Path(__file__).parent
+    files = {file: file.stat().st_mtime_ns for file in cwd.iterdir() if file.is_file()}
+    # Grab the newest (highest st_mtime_ns) n files - believe want heapq
+
+    with ZipFile(cwd/zip_file, mode='w', compression=ZIP_DEFLATED) as zf:
+        ...
 
 
 if __name__ == '__main__':
