@@ -39,6 +39,7 @@ The order of the 3 files does not really matter, as long as you get the latest 3
 
 
 from datetime import datetime
+from heapq import nlargest
 import os
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -50,13 +51,27 @@ ZIP_FILE = 'logs.zip'
 
 
 def zip_last_n_files(directory: Path=LOG_DIR, zip_file: str=ZIP_FILE, n: int=3) -> None:
-    cwd = Path(__file__).parent
-    files = {file: file.stat().st_mtime_ns for file in cwd.iterdir() if file.is_file()}
-    # Grab the newest (highest st_mtime_ns) n files - believe want heapq
+    files = {file: file.stat().st_mtime_ns for file in directory.iterdir() if file.is_file()}
 
-    with ZipFile(cwd/zip_file, mode='w', compression=ZIP_DEFLATED) as zf:
-        ...
+    # Grab the newest (highest st_mtime_ns) n files:
+    file_set = nlargest(n, files, key=files.get)
+
+    with ZipFile(zip_file, mode='w', compression=ZIP_DEFLATED) as zf:
+        for file in file_set:
+            dt = datetime.fromtimestamp(file.stat().st_birthtime)
+            zf.write(file, arcname=f'{file.stem}_{dt.year}-{dt.month:02}-{dt.day:02}{file.suffix}')
 
 
 if __name__ == '__main__':
-    ...
+    cwd = Path(__file__).parent
+    zip_file1 = 'programs.zip'
+    zip_last_n_files(cwd, zip_file1)
+    print('Test 1:')
+    ZipFile(Path(zip_file1)).printdir()
+    Path(zip_file1).unlink()
+
+    zip_file2 = 'log_files.zip'
+    path = Path('/temp')
+    zip_last_n_files(path, zip_file2, n=3)
+    print(f'\nTest 2:\n{ZipFile(Path(zip_file2)).namelist()}')
+    Path(zip_file2).unlink()
