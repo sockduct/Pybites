@@ -54,12 +54,18 @@ def zip_last_n_files(directory: Path=LOG_DIR, zip_file: str=ZIP_FILE, n: int=3) 
     files = {file: file.stat().st_mtime_ns for file in directory.iterdir() if file.is_file()}
 
     # Grab the newest (highest st_mtime_ns) n files:
-    file_set = nlargest(n, files, key=files.get)
+    # Here we retrieve n files (keys from files dict) sorted by their values (st_mtime_ns)
+    file_set = nlargest(n, files, key=files.__getitem__)
 
     with ZipFile(zip_file, mode='w', compression=ZIP_DEFLATED) as zf:
         for file in file_set:
-            dt = datetime.fromtimestamp(file.stat().st_birthtime)
-            zf.write(file, arcname=f'{file.stem}_{dt.year}-{dt.month:02}-{dt.day:02}{file.suffix}')
+            try:
+                dt = datetime.fromtimestamp(file.stat().st_birthtime)
+            except AttributeError:
+                # Linux/UNIX doesn't have st_birthtime, us st_mtime instead
+                # Could also consider st_ctime
+                dt = datetime.fromtimestamp(file.stat().st_mtime)
+            zf.write(file, arcname=f'{file.stem}_{dt:%Y-%m-%d}{file.suffix}')
 
 
 if __name__ == '__main__':
