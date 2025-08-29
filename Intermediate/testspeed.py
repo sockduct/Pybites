@@ -41,6 +41,7 @@ keep calm and code in Python!
 import os
 from pathlib import Path
 import re
+from typing import TypedDict
 from urllib.request import urlretrieve
 
 tmp = Path(os.getenv("TMP", "/tmp"))
@@ -52,15 +53,52 @@ if not timings_log.exists():
     )
 
 
+class Answer(TypedDict):
+    bite: str
+    duration: float
+
+
 def get_bite_with_fastest_avg_test(timings: list[str]) -> str:
     """Return the bite which has the fastest average time per test"""
-    res = dict(line=None, duration=0.0)
+    answer: Answer = {'bite': '', 'duration': 0.0}
     for line in timings:
         ### Need to work on regex match using online tool:
-        res = re.match(r'(\d+)\s+=+\s+(\d+)\s+passed in (\d+\.\d+)\s+ seconds\s+=+$', line, re.I)
-        if not res:
-            raise
-        ...
+        match line:
+            case c if (
+                m := re.match(
+                    r'(\d+)\s+=+ (\d+) passed in (\d+\.\d+) seconds =+$', line, re.I
+                )
+            ):
+                bite = m[1]
+                duration: float = float(m[3])/int(m[2])
+            case c if (
+                m := re.match(
+                    r'(\d+)\s+=+ (\d+) passed, \d+ warnings in (\d+\.\d+) seconds =+$', line, re.I
+                )
+            ):
+                bite = m[1]
+                duration = float(m[3])/int(m[2])
+            case c if (
+                m := re.match(
+                    r'(\d+)\s+=+ \d+ error in (\d+\.\d+) seconds =+$', line, re.I
+                )
+            ):
+                continue
+            case c if (
+                m := re.match(
+                    r'(\d+)\s+=+ no tests ran in (\d+\.\d+) seconds =+$', line, re.I
+                )
+            ):
+                continue
+            case _:
+                raise ValueError(f'Unable to parse line:  {line}')
+
+
+        if duration < answer['duration'] or answer['bite'] == '':
+            answer['bite'] = bite
+            answer['duration'] = duration
+
+    return answer['bite']
 
 
 if __name__ == '__main__':
