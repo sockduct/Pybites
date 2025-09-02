@@ -61,38 +61,20 @@ class Answer(TypedDict):
 def get_bite_with_fastest_avg_test(timings: list[str]) -> str:
     """Return the bite which has the fastest average time per test"""
     answer: Answer = {'bite': '', 'duration': 0.0}
+    pass_re = re.compile(r'(\d+)\s+=+ (\d+) passed in (\d+\.\d+) seconds =+$', re.I)
+    passwarn_re = re.compile(
+        r'(\d+)\s+=+ (\d+) passed, \d+ warnings in (\d+\.\d+) seconds =+$', re.I
+    )
+    err_re = re.compile(r'(\d+)\s+=+ \d+ error in (\d+\.\d+) seconds =+$', re.I)
+    notest_re = re.compile(r'(\d+)\s+=+ no tests ran in (\d+\.\d+) seconds =+$', re.I)
     for line in timings:
-        ### Need to work on regex match using online tool:
-        match line:
-            case c if (
-                m := re.match(
-                    r'(\d+)\s+=+ (\d+) passed in (\d+\.\d+) seconds =+$', line, re.I
-                )
-            ):
-                bite = m[1]
-                duration: float = float(m[3])/int(m[2])
-            case c if (
-                m := re.match(
-                    r'(\d+)\s+=+ (\d+) passed, \d+ warnings in (\d+\.\d+) seconds =+$', line, re.I
-                )
-            ):
-                bite = m[1]
-                duration = float(m[3])/int(m[2])
-            case c if (
-                m := re.match(
-                    r'(\d+)\s+=+ \d+ error in (\d+\.\d+) seconds =+$', line, re.I
-                )
-            ):
-                continue
-            case c if (
-                m := re.match(
-                    r'(\d+)\s+=+ no tests ran in (\d+\.\d+) seconds =+$', line, re.I
-                )
-            ):
-                continue
-            case _:
-                raise ValueError(f'Unable to parse line:  {line}')
-
+        if (m := pass_re.match(line)) or (m := passwarn_re.match(line)):
+            bite = m[1]
+            duration: float = float(m[3])/int(m[2])
+        elif (m := err_re.match(line)) or (notest_re.match(line)):
+            continue
+        else:
+            raise ValueError(f'Unable to parse line:  {line}')
 
         if duration < answer['duration'] or answer['bite'] == '':
             answer['bite'] = bite
