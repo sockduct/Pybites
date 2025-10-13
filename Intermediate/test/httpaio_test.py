@@ -1,4 +1,4 @@
-
+#! /usr/bin/env python3.14
 
 import asyncio
 from asyncio import sleep

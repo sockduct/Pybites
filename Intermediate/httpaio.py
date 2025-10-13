@@ -33,12 +33,18 @@ Useful links
 import asyncio
 from typing import Iterable, NamedTuple
 
-import aiohttp
+from aiohttp import ClientSession
 
 
 class Result(NamedTuple):
     status_code: int
     content: int
+
+
+async def get_url(session: ClientSession, address: str) -> Result:
+    async with session.get(address) as response:
+        body = int(await response.text()) if (status := response.status) == 200 else 0
+        return Result(status, body)
 
 
 async def get_results_from_urls(address: str, port: int, slugs: list) -> Iterable[Result]:
@@ -51,14 +57,12 @@ async def get_results_from_urls(address: str, port: int, slugs: list) -> Iterabl
     Results must be ordered according to the order of slugs in list and their respective responses.
     Requests must be sent in a asynchronous way. (Can not be sequential and blocking.)
     """
-    # How to group these requests???
-    async with aiohttp.ClientSession() as session:
-        # for slug in slugs...
-        async with session.get(f'{address}:{port}/{slug}') as response:
-            body = await response.text()
-            # Collect results into a sequence and return:
-            res = Result(response.status, body)
+    async with ClientSession() as session:
+        tasks = [get_url(session, f'{address}:{port}/{slug}') for slug in slugs]
+
+        return await asyncio.gather(*tasks)
 
 
 if __name__ == '__main__':
-    ...
+    import sys
+    print(sys.version)
