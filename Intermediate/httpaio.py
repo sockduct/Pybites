@@ -47,7 +47,7 @@ async def get_url(session: ClientSession, address: str) -> Result:
         return Result(status, body)
 
 
-async def get_results_from_urls(address: str, port: int, slugs: list) -> Iterable[Result]:
+async def get_results_from_urls(address: str, port: int, slugs: list[int]) -> Iterable[Result]:
     """Get results from http responses.
 
     Get responses by making requests to urls.
