@@ -19,14 +19,29 @@ either, return an empty list.
 '''
 
 
-from pathlib import PosixPath, WindowsPath, Path
-from difflib import get_close_matches
+from collections import defaultdict
+from collections.abc import Iterable
+from difflib import SequenceMatcher, get_close_matches
+from pathlib import Path
 
 
-type AnyPath = PosixPath | WindowsPath | Path
+def get_ratios(files: Iterable[str], filter_str: str) -> dict[str, float]:
+    return {file: SequenceMatcher(a=filter_str, b=file).ratio() for file in files}
 
 
-def get_matching_files(directory: AnyPath, filter_str: str) -> list[str]:
+def filter_ratios(files: dict[str, float], *, min_ratio: float=0.6,
+                  ratio_from_highest: None|float=None) -> list[str]:
+    if ratio_from_highest:
+        max_ratio = max(files.values())
+        return [
+            file for file, ratio in files.items()
+            if ratio >= min_ratio and ratio >= max_ratio * ratio_from_highest
+        ]
+    else:
+        return [file for file, ratio in files.items() if ratio >= min_ratio]
+
+
+def get_matching_files(directory: Path, filter_str: str) -> list[str]:
     """Get all file names in "directory" and (case insensitive) match the ones
        that exactly match "filter_str"
 
@@ -48,18 +63,24 @@ def get_matching_files(directory: AnyPath, filter_str: str) -> list[str]:
        get_matching_files(d, 'o$tput') => ['output']
        get_matching_files(d, 'nonsense') => []
     """
-    exact = []
-    approx  = []
+    file_map: defaultdict[str, list[str]] = defaultdict(list)
     for file in directory.iterdir():
-        if file.name.lower() == filter_str.lower():
-            exact.append(file.name)
-        elif m := get_close_matches(filter_str.lower(), [file.name.lower()]):
-            approx.extend(m)
+        if file.is_file():
+            file_map[file.name.lower()].append(file.name)
 
-    if exact:
-        return exact
-    elif approx:
-        return approx
+    # Exact match(es):
+    if (filter := filter_str.lower()) in file_map:
+        return file_map[filter]
+    # Closest match(es):
+    # elif match := get_close_matches(filter_str.lower(), file_map.keys()):
+    elif match := filter_ratios(
+        get_ratios(file_map.keys(), filter_str.lower()), ratio_from_highest=0.75
+    ):
+        values = []
+        for key, value in file_map.items():
+            if key in match:
+                values.extend(value)
+        return values
     else:
         return []
 
