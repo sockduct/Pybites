@@ -22,7 +22,7 @@ either, return an empty list.
 from collections import defaultdict
 from collections.abc import Iterable
 from difflib import SequenceMatcher, get_close_matches
-from pathlib import Path
+from pathlib import Path, PosixPath, WindowsPath
 
 
 def get_ratios(files: Iterable[str], filter_str: str) -> dict[str, float]:
@@ -41,7 +41,7 @@ def filter_ratios(files: dict[str, float], *, min_ratio: float=0.6,
         return [file for file, ratio in files.items() if ratio >= min_ratio]
 
 
-def get_matching_files(directory: Path, filter_str: str) -> list[str]:
+def get_matching_files3(directory: Path, filter_str: str) -> list[str]:
     """Get all file names in "directory" and (case insensitive) match the ones
        that exactly match "filter_str"
 
@@ -83,6 +83,43 @@ def get_matching_files(directory: Path, filter_str: str) -> list[str]:
         return values
     else:
         return []
+
+
+def get_matching_files(directory: Path, filter_str: str) -> list[str]:
+    exact = []
+    close = []
+    for file in directory.iterdir():
+        if file.name.lower() == filter_str.lower():
+            exact.append(file.name)
+        ######################################################################
+        # Possibilities:
+        # ------------------------------------------------------
+        # | filter_str.lower? | file.name.lower? | Tests Pass? |
+        # --------------------|------------------|--------------
+        # |       True        |       True       |    False    |
+        # |       True        |       False      |    False    |
+        # |       False       |       True       |    True     |
+        # |       False       |       False      |    True     |
+        # ------------------------------------------------------
+        # elif match := get_close_matches(filter_str.lower(), [file.name.lower()]):
+        # elif match := get_close_matches(filter_str.lower(), [file.name]):
+        # elif match := get_close_matches(filter_str, [file.name.lower()]):
+        elif match := get_close_matches(filter_str, [file.name]):
+            close.extend(match)
+
+    if exact:
+        return exact
+    elif close:
+        return close
+    else:
+        return []
+
+
+def get_matching_files2(directory: PosixPath, filter_str: str) -> list[str]:
+    files = [file_.name for file_ in directory.iterdir()]
+    matches = [file_ for file_ in files
+               if filter_str.lower() == file_.lower()]
+    return matches or get_close_matches(filter_str, files)
 
 
 if __name__ == '__main__':
