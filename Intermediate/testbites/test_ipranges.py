@@ -15,15 +15,18 @@ accomplishment upon completing the Bite 😎
 from ipaddress import IPv4Network
 import os
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from urllib.request import urlretrieve
 
 import pytest
 
-from ips import ServiceIPRange, parse_ipv4_service_ranges, get_aws_service_range
+from .ips import ServiceIPRange, parse_ipv4_service_ranges, get_aws_service_range
 
 
 URL = "https://bites-data.s3.us-east-2.amazonaws.com/ip-ranges.json"
-TMP = os.getenv("TMP", "/tmp")
+# TMP = os.getenv("TMP", "/tmp")
+TMPDIR = TemporaryDirectory()
+TMP = TMPDIR.name
 PATH = Path(TMP, "ip-ranges.json")
 IP = IPv4Network('192.0.2.8/29')
 
@@ -60,3 +63,19 @@ Tests:
 * Test for valid and invalid IP Addresses and Networks
 * Create matrix and cover valid/invalid combinations for all 3
 '''
+
+ipv4_service_ranges = parse_ipv4_service_ranges(json_file())
+aws_regions = {ent.region for ent in ipv4_service_ranges}
+aws_services = {ent.service for ent in ipv4_service_ranges}
+aws_cidrs = {ent.cidr for ent in ipv4_service_ranges}
+
+aws_regions.add('INVALID')
+aws_services.add('INVALID')
+
+def test_regions(ipv4_service_ranges: list[ServiceIPRange]) -> None:
+    for region in aws_regions:
+        count = sum(1 for ent in ipv4_service_ranges if ent.region == region)
+        if region != 'INVALID':
+            assert count >= 1
+        else:
+            assert count == 0

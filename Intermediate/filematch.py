@@ -101,10 +101,10 @@ def get_matching_files(directory: Path, filter_str: str) -> list[str]:
         # |       False       |       True       |    True     |
         # |       False       |       False      |    True     |
         # ------------------------------------------------------
-        # elif match := get_close_matches(filter_str.lower(), [file.name.lower()]):
+        elif match := get_close_matches(filter_str.lower(), [file.name.lower()], cutoff=0.67):
         # elif match := get_close_matches(filter_str.lower(), [file.name]):
         # elif match := get_close_matches(filter_str, [file.name.lower()]):
-        elif match := get_close_matches(filter_str, [file.name]):
+        # elif match := get_close_matches(filter_str, [file.name]):
             close.extend(match)
 
     if exact:
