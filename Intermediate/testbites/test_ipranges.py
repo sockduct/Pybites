@@ -12,7 +12,8 @@ accomplishment upon completing the Bite 😎
 '''
 
 
-from ipaddress import IPv4Network
+from collections import Counter
+from ipaddress import AddressValueError, IPv4Network
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -20,6 +21,7 @@ from urllib.request import urlretrieve
 
 import pytest
 
+# from ips import ServiceIPRange, parse_ipv4_service_ranges, get_aws_service_range
 from .ips import ServiceIPRange, parse_ipv4_service_ranges, get_aws_service_range
 
 
@@ -64,18 +66,56 @@ Tests:
 * Create matrix and cover valid/invalid combinations for all 3
 '''
 
-ipv4_service_ranges = parse_ipv4_service_ranges(json_file())
-aws_regions = {ent.region for ent in ipv4_service_ranges}
-aws_services = {ent.service for ent in ipv4_service_ranges}
-aws_cidrs = {ent.cidr for ent in ipv4_service_ranges}
+## def test_regions(ipv4_service_ranges: list[ServiceIPRange]) -> None:
+class TestIPs:
+    def __init__(self):
+        # Until get fixture working:
+        urlretrieve(URL, PATH)
 
-aws_regions.add('INVALID')
-aws_services.add('INVALID')
+        ## ipv4_service_ranges = parse_ipv4_service_ranges(json_file)
+        self.ipv4_service_ranges = parse_ipv4_service_ranges(PATH)
+        self.aws_regions = {ent.region for ent in self.ipv4_service_ranges}
+        self.aws_services = {ent.service for ent in self.ipv4_service_ranges}
+        self.aws_cidrs = {ent.cidr for ent in self.ipv4_service_ranges}
 
-def test_regions(ipv4_service_ranges: list[ServiceIPRange]) -> None:
-    for region in aws_regions:
-        count = sum(1 for ent in ipv4_service_ranges if ent.region == region)
-        if region != 'INVALID':
-            assert count >= 1
-        else:
-            assert count == 0
+        self.aws_regions.add('INVALID')
+        self.aws_services.add('INVALID')
+
+        self.top3 = Counter(ent.cidr for ent in self.ipv4_service_ranges).most_common(3)
+
+    def test_regions(self) -> None:
+        for region in self.aws_regions:
+            count = sum(ent.region == region for ent in self.ipv4_service_ranges)
+            if region != 'INVALID':
+                assert count >= 1
+            else:
+                assert count == 0
+
+    def test_services(self) -> None:
+        for service in self.aws_services:
+            count = sum(ent.service == service for ent in self.ipv4_service_ranges)
+            if service != 'INVALID':
+                assert count >= 1
+            else:
+                assert count == 0
+
+    def test_ipv4net(self) -> None:
+        with pytest.raises(AddressValueError):
+            get_aws_service_range('not-an-ipv4-address', self.ipv4_service_ranges)
+
+        for ent, count in self.top3:
+            res = get_aws_service_range(ent.network_address + 1, self.ipv4_service_ranges)
+            assert len(res) == count
+
+        for cidr in self.aws_cidrs:
+            assert (
+                len(get_aws_service_range(cidr.network_address + 1, self.ipv4_service_ranges)) >= 1
+            )
+            assert (
+                len(get_aws_service_range(cidr_network_address - 1, self.ipv4_service_ranges)) == 0
+            )
+
+
+if __name__ == '__main__':
+    testips = TestIPs()
+    pass
