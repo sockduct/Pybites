@@ -55,7 +55,7 @@ IP = IPv4Network('192.0.2.8/29')
 
 
 @pytest.fixture(scope='module')
-def json_file():
+def json_file() -> Path:
     """Import data into tmp folder"""
     urlretrieve(URL, PATH)
     return PATH
@@ -123,7 +123,7 @@ def test_ipv4net(ipv4_service_ranges: list[ServiceIPRange]) -> None:
         get_aws_service_range('not-an-ipv4-address', ipv4_service_ranges)
 
     for ent, count in top3:
-        res = get_aws_service_range(ent.network_address + 1, ipv4_service_ranges)
+        res = get_aws_service_range(str(ent.network_address + 1), ipv4_service_ranges)
         assert len(res) == count
 
     for cidr in cidrs:
@@ -132,7 +132,7 @@ def test_ipv4net(ipv4_service_ranges: list[ServiceIPRange]) -> None:
               f' {cidr.network_address + 1=}')
         test_address = cidr.network_address if cidr.prefixlen == 32 else cidr.network_address + 1
         assert (
-            len(get_aws_service_range(test_address, ipv4_service_ranges)) >= 1
+            len(get_aws_service_range(str(test_address), ipv4_service_ranges)) >= 1
         )
 
     # Random sample:
@@ -140,7 +140,7 @@ def test_ipv4net(ipv4_service_ranges: list[ServiceIPRange]) -> None:
     cidr_sample = int(len(cidr_list) * 0.2)
     for cidr in sample(cidr_list, cidr_sample):
         assert (
-            len(get_aws_service_range(cidr.network_address, ipv4_service_ranges)) >= 1
+            len(get_aws_service_range(str(cidr.network_address), ipv4_service_ranges)) >= 1
         )
 
     for bad_ip in {invalid_bottom, invalid_top}:
@@ -150,13 +150,13 @@ def test_ipv4net(ipv4_service_ranges: list[ServiceIPRange]) -> None:
 
 
 ### Solution Provided:
-def test_dataclass():
+def test_dataclass() -> None:
     expected = ("192.0.2.8/29 is allocated to the pybites service "
                 "in the US region")
     assert str(ServiceIPRange('pybites', 'US', IP)) == expected
 
 
-def test_parse_ranges(json_file):
+def test_parse_ranges(json_file: Path) -> None:
     out = parse_ipv4_service_ranges(json_file)
     assert len(out) == 1886
 
@@ -166,11 +166,11 @@ def test_parse_ranges(json_file):
                            "service in the eu-west-1 region")
 
 
-def test_get_aws_service_range_zero_hits(json_file):
+def test_get_aws_service_range_zero_hits(json_file: Path) -> None:
     assert get_aws_service_range('13.248.118.0', []) == []
 
 
-def test_get_aws_service_range_two_hits(json_file):
+def test_get_aws_service_range_two_hits(json_file: Path) -> None:
     service_range = parse_ipv4_service_ranges(json_file)
     expected = [
         ServiceIPRange(service='AMAZON', region='eu-west-1',
@@ -181,7 +181,7 @@ def test_get_aws_service_range_two_hits(json_file):
     assert get_aws_service_range('13.248.118.0', service_range) == expected
 
 
-def test_get_aws_service_range_exception(json_file):
+def test_get_aws_service_range_exception(json_file: Path) -> None:
     with pytest.raises(ValueError) as exc:
-        get_aws_service_range('nonsense', {})
+        get_aws_service_range('nonsense', [])
     assert str(exc.value) == "Address must be a valid IPv4 address"
