@@ -25,25 +25,29 @@ import os
 from pathlib import Path
 import re
 from tempfile import TemporaryDirectory
-from typing import List, Optional
+from typing import Dict, Generator, Iterator, List, Optional
 from urllib.request import urlretrieve
 
 S3 = "https://bites-data.s3.us-east-2.amazonaws.com/{}"
 FILE_NAME = "mutpy.out"
 # TMP = os.getenv("TMP", "/tmp")
-TMP = TemporaryDirectory().name
+# TMP = TemporaryDirectory().name
+TMP = Path(__file__).parent/'data'
 PATH = Path(TMP, FILE_NAME)
 
 if not PATH.exists():
     urlretrieve(S3.format(FILE_NAME), PATH)
 
+START = "[*] Start mutants generation and execution:"
+END = "[*] Mutation score "
 
-def _get_data(path=PATH):
+
+def _get_data(path: Path=PATH) -> List[str]:
     with open(path) as f:
         return [line.rstrip() for line in f.readlines()]
 
 
-def filter_killed_mutants(mutpy_output: Optional[List[str]] = None) -> List[str]:
+def filter_killed_mutants2(mutpy_output: Optional[List[str]] = None) -> List[str]:
     """Read in the passed in mutpy output and filter out the code snippets of
        mutation tests that were killed. Surviving mutants should be shown in
        full, as well the surrounding output.
@@ -103,9 +107,9 @@ def filter_killed_mutants(mutpy_output: Optional[List[str]] = None) -> List[str]
     * Save that line
     * Save intermediate lines
     * Use regexp to look for:  re_stop
-    * \_ Save first regexp and this, discard rest
+    * \\__ Save first regexp and this, discard rest
     * Use regexp to look for:  re_miss
-    * \_ Save first regexp all the way through this
+    * \\__ Save first regexp all the way through this
 
     * Save content to output_list
     '''
@@ -123,14 +127,58 @@ def filter_killed_mutants(mutpy_output: Optional[List[str]] = None) -> List[str]
         elif re.match(re_stop, line):
             buffer.append(line)
             inside_match = False
-            ...
+            output.extend([buffer[0], buffer[-1]])
+            buffer.clear()
         elif re.match(re_miss, line):
             buffer.append(line)
             inside_match = False
-            ...
+            output.extend(buffer)
+            buffer.clear()
         elif inside_match:
             buffer.append(line)
+        else:
+            output.append(line)
 
-    ...
+    return output
 
-    return []
+
+def filter_killed_mutants(mutpy_output: Optional[List[str]] = None) -> Iterator[str]:
+    """
+    Solution provided...
+    """
+    if mutpy_output is None:
+        mutpy_output = _get_data()
+
+    start_index = 0
+    end_index = 0
+    for i, line in enumerate(mutpy_output):
+        if line.startswith(START):
+            start_index = i
+        elif line.startswith(END):
+            end_index = i
+
+    mutants: Dict[str, List[str]] = {}
+    key = ""
+    for line in mutpy_output[start_index + 1:end_index]:
+        if line.startswith('   - [#'):
+            key = line
+            mutants[key] = []
+            continue
+        mutants[key].append(line)
+
+    yield from mutpy_output[:start_index+1]
+
+    for key, output in mutants.items():
+        survived = 'survived' in output[-1]
+        yield key
+        if survived:
+            yield from output
+        else:
+            yield output[-1]
+
+    yield from mutpy_output[end_index:]
+
+
+if __name__ == '__main__':
+    for line in filter_killed_mutants():
+        print(line)
