@@ -1,4 +1,4 @@
-#! /usr/bin/env python3.14
+#! /usr/bin/env python
 
 
 def fizzbuzz(num: int) -> int|str:

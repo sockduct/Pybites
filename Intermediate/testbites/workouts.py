@@ -1,4 +1,4 @@
-#! /usr/bin/env python3.14
+#! /usr/bin/env python
 
 
 WORKOUTS = {'mon': 'upper body #1',

@@ -1,4 +1,4 @@
-#! /usr/bin/env python3.14
+#! /usr/bin/env python
 '''
 Another Test Bite, we ❤️ them 😁 - today you will write tests for IPv4Network
 (ipaddress module) and dataclass objects 💪.

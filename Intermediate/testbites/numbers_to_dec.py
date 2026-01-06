@@ -1,4 +1,4 @@
-#! /usr/bin/env python3.14
+#! /usr/bin/env python
 
 
 def list_to_decimal(nums: list[int]) -> int:

@@ -1,4 +1,4 @@
-#! /usr/bin/env python3.14
+#! /usr/bin/env python
 '''
 We moved from mutpy (<= 3.7) to mutatest (3.12 📈) for test Bites.
 
