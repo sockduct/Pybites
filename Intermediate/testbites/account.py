@@ -1,0 +1,51 @@
+#! /usr/bin/env python
+
+
+# source: https://dbader.org/blog/python-dunder-methods
+from functools import total_ordering
+
+
+@total_ordering
+class Account:
+    'A simple account class'
+
+    def __init__(self, owner: str, amount: int=0) -> None:
+        'This is the constructor that lets us create objects from this class'
+        self.owner = owner
+        self.amount = amount
+        self._transactions = []
+
+    def __repr__(self) -> str:
+        return f'Account({self.owner!r}, {self.amount!r})'
+
+    def __str__(self) -> str:
+        return f'Account of {self.owner} with starting amount: {self.amount}'
+
+    def add_transaction(self, amount: int) -> None:
+        if not isinstance(amount, int):
+            raise ValueError('please use int for amount')
+        self._transactions.append(amount)
+
+    @property
+    def balance(self) -> int:
+        return self.amount + sum(self._transactions)
+
+    def __len__(self) -> int:
+        return len(self._transactions)
+
+    def __getitem__(self, position: int) -> int:
+        return self._transactions[position]
+
+    def __eq__(self, other: 'Account') -> bool:
+        return self.balance == other.balance
+
+    def __lt__(self, other: 'Account') -> bool:
+        return self.balance < other.balance
+
+    def __add__(self, other: 'Account') -> 'Account':
+        owner = f'{self.owner}&{other.owner}'
+        start_amount = self.amount + other.amount
+        acc = Account(owner, start_amount)
+        for t in list(self) + list(other):
+            acc.add_transaction(t)
+        return acc
