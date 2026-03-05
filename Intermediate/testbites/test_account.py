@@ -49,8 +49,8 @@ def test_account_init(owner, amount) -> None:
 
 
 def test_account_repr(acc1: Account, acc2: Account) -> None:
-    assert repr(acc1) == 'Account("George", 0)'
-    assert repr(acc2) == 'Account("Jane", 10)'
+    assert repr(acc1) == "Account('George', 0)"
+    assert repr(acc2) == "Account('Jane', 10)"
 
 
 def test_account_str(acc1: Account, acc2: Account) -> None:
@@ -59,8 +59,8 @@ def test_account_str(acc1: Account, acc2: Account) -> None:
 
 
 @pytest.mark.parametrize('amount, expected', [
-    (5.6, Exception),
-    ('bad', ValueError),
+    (5.6, Exception()),
+    ('bad', ValueError()),
     (7, None)
 ])
 def test_account_trans(amount: int|float|str, expected: Exception|None, acc2: Account) -> None:
