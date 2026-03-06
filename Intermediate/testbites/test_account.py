@@ -38,7 +38,7 @@ def acc2() -> Account:
     ('George', None),
     ('Jane', 10)
 })
-def test_account_init(owner, amount) -> None:
+def test_account_init(owner: str, amount: int) -> None:
     acct = Account(owner, amount) if amount else Account(owner)
     assert acct.owner == owner
     if amount:
@@ -67,9 +67,9 @@ def test_account_trans(amount: int|float|str, expected: Exception|None, acc2: Ac
     assert acc2._transactions == []
     if isinstance(expected, Exception):
         with pytest.raises(ValueError):
-            acc2.add_transaction(amount)
+            acc2.add_transaction(amount)  # type: ignore
     else:
-        acc2.add_transaction(amount)
+        acc2.add_transaction(amount)  # type: ignore
         assert acc2._transactions == [amount]
 
 
@@ -77,6 +77,7 @@ def test_account_balance(acc2: Account) -> None:
     assert acc2.balance == 10
     acc2.add_transaction(20)
     assert acc2.balance == 30
+    # Recommend also doing negative balances to go back and forth
 
 
 def test_account_len(acc2: Account) -> None:
@@ -85,6 +86,8 @@ def test_account_len(acc2: Account) -> None:
     assert len(acc2) == 1
     acc2.add_transaction(15)
     assert len(acc2) == 2
+    # Also need to test getiem:
+    # e.g., acc2[0], acc2[1], acc2[-1]
 
 
 def test_account_ordering(acc1: Account, acc2: Account) -> None:
@@ -100,6 +103,10 @@ def test_account_ordering(acc1: Account, acc2: Account) -> None:
     assert acc2 <= acc3
     assert acc2 == acc3
     assert acc1 != acc2
+    # Could also split between comparison tests (<, >) and
+    # equality tests (=, !=)
+    # Could also change the value in such a way that the comparisons change
+    # and then validate that the comparison operators still work corrrectly
 
 
 def test_account_add(acc1: Account, acc2: Account) -> None:
@@ -109,3 +116,6 @@ def test_account_add(acc1: Account, acc2: Account) -> None:
     acc3 = acc1 + acc2
     assert acc3.owner == f'{acc1.owner}&{acc2.owner}'
     assert acc3.balance == acc1.balance + acc2.balance
+    # Recommend testing both ways:
+    # acc1 + acc2, but also acc2 + acc1
+    # Consider doing some transactions too and validating results correct
