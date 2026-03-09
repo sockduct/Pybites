@@ -2,12 +2,23 @@ import calendar
 from collections import namedtuple
 from datetime import datetime
 from operator import itemgetter
-from typing import List
+from typing import NamedTuple
 
-Sign = namedtuple('Sign', 'name compatibility famous_people sun_dates')
+# Sign = namedtuple('Sign', 'name compatibility famous_people sun_dates')
+class Sign(NamedTuple):
+    name: str
+    compatibility: list[str]
+    famous_people: list[str]
+    sun_dates: list[str]
 
+### Temp to include private function:
+__all__ = [
+    'get_signs', 'get_sign_with_most_famous_people', 'signs_are_mutually_compatible',
+    '_get_month_int', 'get_sign_by_date', 'Sign'
+]
+### End Temp
 
-def get_signs(data: list) -> List[Sign]:
+def get_signs(data: list) -> list[Sign]:
     ret = []
     for sign in data:
         name = sign['name']
@@ -15,13 +26,11 @@ def get_signs(data: list) -> List[Sign]:
         famous_people = sign['famous_people']
         sun_dates = sign['sun_dates']
         sign = Sign(name, compatibility, famous_people, sun_dates)
-        ret.append(
-            sign
-        )
+        ret.append(sign)
     return ret
 
 
-def get_sign_with_most_famous_people(signs: list):
+def get_sign_with_most_famous_people(signs: list[Sign]) -> tuple[str, int]:
     """Get the sign with the most famous people associated"""
     famous_people = [
         (s.name, len(s.famous_people)) for s in signs
@@ -40,13 +49,14 @@ def signs_are_mutually_compatible(signs: list, sign1: str, sign2: str) -> bool:
     return ret
 
 
-def _get_month_int(month):
-    month_mapping = dict((v, k) for k, v in
-                         enumerate(calendar.month_abbr))
+def _get_month_int(month) -> int:
+    month_mapping = {
+        v: k for k, v in enumerate(calendar.month_abbr)
+    }
     return int(month_mapping[month[:3]])
 
 
-def get_sign_by_date(signs: list, date: datetime) -> str:
+def get_sign_by_date(signs: list, date: datetime) -> str|None:
     """Given a date return the right sign (sun_dates field)"""
     month = date.month
     day = date.day
@@ -55,6 +65,9 @@ def get_sign_by_date(signs: list, date: datetime) -> str:
         start, end = sign.sun_dates
         start_month, start_day = start.split()
         end_month, end_day = end.split()
-        if(month == _get_month_int(start_month) and day >= int(start_day)
-           or month == _get_month_int(end_month) and day <= int(end_day)):
+        if(
+            month == _get_month_int(start_month) and day >= int(start_day)
+            or
+            month == _get_month_int(end_month) and day <= int(end_day)
+        ):
             return sign.name

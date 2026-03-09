@@ -1,4 +1,5 @@
 from datetime import datetime
+from itertools import combinations
 import json
 import os
 from pathlib import Path
@@ -40,7 +41,7 @@ class Data(TypedDict):
 
 
 @pytest.fixture(scope='module')
-def signs() -> list[Sign]
+def signs() -> list[Sign]:
     if not PATH.exists():
         urlretrieve(URL, PATH)
     with open(PATH) as f:
@@ -48,9 +49,24 @@ def signs() -> list[Sign]
     return get_signs(data)
 
 # write your pytest code here ...
-def test_get_signs(signs: list[Sign]):
+def test_get_signs(signs: list[Sign]) -> None:
+    '''get_signs -> list[Sign]'''
     assert len(signs) == 12
     assert {
-        'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra',
-        'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+        'Aquarius', 'Aries', 'Cancer', 'Capricorn', 'Gemini', 'Leo',
+        'Libra', 'Pisces', 'Sagittarius', 'Scorpio', 'Taurus', 'Virgo'
     } == {sign.name for sign in signs}
+
+def test_get_sign_with_most_famous_people(signs: list[Sign]) -> None:
+    '''get_sign_with_most_famous_people -> tuple[str, int]'''
+    assert test_get_sign_with_most_famous_people(signs) == ('Scorpio', 35)
+
+def test_signs_are_mutually_compatible(signs: list[Sign]) -> None:
+    '''signs_are_mutually_compatible -> bool'''
+    combos = list(combinations([s.name for s in signs], 2))
+    assert len(combos) == 66
+    assert sum(signs_are_mutually_compatible(signs, t[0], t[1]) for t in combos) == 10
+
+def test_get_sign_by_date(signs: list[Sign]) -> None:
+    '''get_sign_by_date -> str'''
+    assert get_sign_by_date(signs, datetime(2026, 3, 7)) == 'Pisces'
