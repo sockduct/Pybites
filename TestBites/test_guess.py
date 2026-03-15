@@ -17,6 +17,7 @@ standard output of the game (100% test coverage remember).
 Good luck and keep calm and code in Python / pytest.
 '''
 
+from io import StringIO
 from pathlib import Path
 import sys
 from unittest.mock import patch
@@ -29,10 +30,15 @@ import pytest
 from guess import GuessGame, InvalidNumber
 
 
+# Constants:
+SECRET_NUMBER = 8
+MAX_GUESSES = 8
+
+
 # write test code to reach coverage + make mutatest happy
 @pytest.fixture()
 def game() -> GuessGame:
-    return GuessGame(8, max_guesses=4)
+    return GuessGame(SECRET_NUMBER, max_guesses=MAX_GUESSES)
 
 
 @pytest.mark.parametrize('number, result', [
@@ -46,10 +52,38 @@ def game() -> GuessGame:
     (16, 'Number too high'),
     (100, 'Number too high')
 ])
-def test_validate(number: int, result: InvalidNumber|int, game: GuessGame) -> None:
+def test_validate(number: int, result: InvalidNumber|int) -> None:
     if isinstance(result, str):
-        with pytest.raises(InvalidNumber) as exc:
-            game._validate(number)
-            assert str(exc.value) == result
+        with pytest.raises(InvalidNumber, match=result):
+            GuessGame(number)
     else:
-        assert game._validate(number) == number
+        assert GuessGame(number).__class__.__name__ == 'GuessGame'
+
+@pytest.mark.parametrize('number, result', [
+    ('not_a_number', 'Enter a number, try again'),
+    (-5, 'Too low'),
+    (10, 'Too high'),
+    (0, 'Too low'),
+    (SECRET_NUMBER - 1, 'Too low'),
+    (SECRET_NUMBER + 1, 'Too high'),
+    (SECRET_NUMBER, 'You guessed it!')
+])
+def test_guesses(number: int, result: str, game: GuessGame,
+                 capsys: pytest.CaptureFixture[str]) -> None:
+    with patch('sys.stdin', StringIO(f'{number}\n{SECRET_NUMBER}\n')):
+        game()
+
+    output = f'Guess a number: \n{result}\n'
+    capture = capsys.readouterr().out
+    if number == SECRET_NUMBER:
+        assert capture == output
+    else:
+        assert capture == output + 'Guess a number: \nYou guessed it!\n'
+
+def test_too_many_guesses(game: GuessGame, capsys: pytest.CaptureFixture[str]) -> None:
+    game.attempt = MAX_GUESSES
+    with patch('sys.stdin', StringIO(f'0\n')):
+        game()
+
+    output = f'Sorry, the number was {SECRET_NUMBER}\n'
+    assert capsys.readouterr().out == output
