@@ -7,12 +7,12 @@ class InvalidNumber(Exception):
 
 class GuessGame:
 
-    def __init__(self, secret_number, max_guesses=5):
+    def __init__(self, secret_number: int, max_guesses: int=5) -> None:
         self.secret_number = self._validate(secret_number)
         self.max_guesses = max_guesses
         self.attempt = 0
 
-    def _validate(self, number):
+    def _validate(self, number: int) -> int:
         try:
             number = int(number)
         except ValueError:
@@ -23,7 +23,7 @@ class GuessGame:
             raise InvalidNumber('Number too high')
         return number
 
-    def __call__(self):
+    def __call__(self) -> None:
         while self.attempt < self.max_guesses:
             try:
                 print('Guess a number: ')

@@ -59,6 +59,7 @@ def test_validate(number: int, result: InvalidNumber|int) -> None:
     else:
         assert GuessGame(number).__class__.__name__ == 'GuessGame'
 
+
 @pytest.mark.parametrize('number, result', [
     ('not_a_number', 'Enter a number, try again'),
     (-5, 'Too low'),
@@ -79,6 +80,32 @@ def test_guesses(number: int, result: str, game: GuessGame,
         assert capture == output
     else:
         assert capture == output + 'Guess a number: \nYou guessed it!\n'
+'''
+Challenge solution:
+def _strip_lines(output):
+    return [line.strip() for line in output.strip().splitlines()]
+
+@patch("builtins.input", side_effect=[1, 2, 9, 7, 11])
+def test_bad_game(input_mock, capfd):
+    expected = """
+        Guess a number:
+        Too low
+        Guess a number:
+        Too low
+        Guess a number:
+        Too high
+        Guess a number:
+        Too high
+        Guess a number:
+        Too high
+        Sorry, the number was 5
+    """
+    GuessGame('5')()  # can be casted to int
+    actual = capfd.readouterr()[0]
+    assert _strip_lines(actual) == _strip_lines(expected)
+
+'''
+
 
 def test_too_many_guesses(game: GuessGame, capsys: pytest.CaptureFixture[str]) -> None:
     game.attempt = MAX_GUESSES
