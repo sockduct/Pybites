@@ -27,9 +27,14 @@ and keep calm and code in Python / pytest!
 
 
 import os
+from pathlib import Path
 import random
+import re
 import string
+import sys
 from typing import Generator
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import pytest
 
@@ -71,7 +76,39 @@ def db() -> Generator[MovieDb, None, None]:
 
 # write tests for all MovieDb's query / add / delete
 def test_query(db: MovieDb) -> None:
-    assert len(db.query()) == 10
-    assert len(db.query('the')) == 5
-    assert len(db.query(year=1939)) == 2
-    assert len(db.query(score_gt=9.0)) == 2
+    '''
+    Matrix of possible query values:
+    Title | Year | Score  | Notes
+    ------+------+--------+---------------------------------
+    None  | None | None   |
+    ------+------+--------+---------------------------------
+    <str> + None + None   |
+    ------+------+--------+---------------------------------
+    None  + <int>+ None   |
+    ------+------+--------+---------------------------------
+    None  + None + <float>|
+    ------+------+--------+---------------------------------
+    <str> + <int>+ None   | Multiple values not supported...
+    ------+------+--------+---------------------------------
+    <str> + None + <float>| Multiple values not supported...
+    ------+------+--------+---------------------------------
+    <str> + <int>+ <float>| Multiple values not supported...
+    ------+------+--------+---------------------------------
+    None  + <int>+ <float>| Multiple values not supported...
+    '''
+    # None, None, None:
+    assert len(db.query()) == len(DATA)
+    # <str>, None, None:
+    assert len(db.query('the')) == sum(
+        re.search(r'\b[Tt]he\b', datum[0]) is not None for datum in DATA
+    )
+    # None, <int>, None:
+    assert len(db.query(year=1939)) == sum(datum[1] == 1939 for datum in DATA)
+    # None, None, <float>:
+    assert len(db.query(score_gt=9.0)) == sum(datum[2] >= 9.0 for datum in DATA)
+
+def test_add(db: MovieDb) -> None:
+    ...
+
+def test_delete(db: MovieDb) -> None:
+    ...
