@@ -107,8 +107,68 @@ def test_query(db: MovieDb) -> None:
     # None, None, <float>:
     assert len(db.query(score_gt=9.0)) == sum(datum[2] >= 9.0 for datum in DATA)
 
+def _add_movie(db: MovieDb) -> tuple[int|None, str|None, int, float]:
+    new_movie = ('Vertigo', 1958, 8.2)
+    new_id = db.add(*new_movie)
+    return (new_id, *new_movie)
+
 def test_add(db: MovieDb) -> None:
-    ...
+    assert len(db.query()) == len(DATA)
+    new_row = _add_movie(db)
+    assert len(db.query()) == len(DATA) + 1
+    new_query = db.query(new_row[1])
+    assert len(new_query) == 1
+    assert new_query[0][0] == new_row[0]
 
 def test_delete(db: MovieDb) -> None:
-    ...
+    new_row = _add_movie(db)
+    assert len(db.query()) == len(DATA) + 1
+    db.delete(new_row[0])
+    assert len(db.query()) == len(DATA)
+
+'''
+Solution tests:
+def test_inserted_data(db):
+    rows = db.query()
+    assert len(rows) == 10
+    assert rows[0] == (1, 'The Godfather', 1972, 9.2)
+
+
+def test_query_by_title(db):
+    rows = db.query(title='Nest')
+    assert rows == [(9, "One Flew Over the Cuckoo's Nest", 1975, 8.7)]
+    rows = db.query(title='aw')
+    assert rows == [(2, 'The Shawshank Redemption', 1994, 9.3),
+                    (10, 'Lawrence of Arabia', 1962, 8.3)]
+
+
+def test_query_by_year(db):
+    rows = db.query(year=1972)
+    assert rows == [(1, 'The Godfather', 1972, 9.2)]
+    rows = db.query(year=1939)
+    assert rows == [(7, 'Gone with the Wind', 1939, 8.1),
+                    (8, 'The Wizard of Oz', 1939, 8.0)]
+
+
+def test_query_by_score(db):
+    rows = db.query(score_gt=9)
+    assert rows == [(1, 'The Godfather', 1972, 9.2),
+                    (2, 'The Shawshank Redemption', 1994, 9.3)]
+
+
+def test_add(db):
+    new_rowid = db.add('Scarface', 1983, 8.3)
+    rows = db.query()
+    assert len(rows) == new_rowid == 11
+    assert rows[-1] == (11, 'Scarface', 1983, 8.3)
+
+
+def test_delete(db):
+    rows = db.query()
+    assert len(rows) == 10
+    assert (1, 'The Godfather', 1972, 9.2) in rows
+    db.delete(1)
+    rows = db.query()
+    assert len(rows) == 9
+    assert (1, 'The Godfather', 1972, 9.2) not in rows
+'''
