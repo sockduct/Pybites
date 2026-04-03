@@ -8,7 +8,7 @@
   * [Getting Started](https://pandas.pydata.org/docs/getting_started/index.html#getting-started)
   * [User Guide](https://pandas.pydata.org/docs/user_guide/index.html#user-guide)
 
-## Usage notes
+## Series Basics
 
 * Overview
   * Series:
@@ -59,3 +59,22 @@
 
     se.iloc['b':'d']  =>  TypeError!
     ```
+
+## Series Transforms
+
+* Recommended options:
+  1) Use true vectorization first
+     * Arithmetic:  +, -, *, /
+     * Exponents:  np.exp()
+     * Built-ins:  string (.str), datetime-like (.dt), and categorical accessors (.cat)
+  2) Use map() for substitutions / simple scalar mapping
+     * scalar-to-scalar mapping (e.g, lookups / substitutions)
+     * mapping values according to a function, dict, or Series
+  3) Use apply() only when you really need a Python UDF
+     * Need to use function and doesn't fit in (1) or (2) above
+  4) Use transform(), agg(), or pipe() when their semantics match your intent better than apply()
+     * transform:  enforce same-length/shape result
+     * agg:  reductions / summaries
+     * pipe:  chain together functions
+  5) For custom high-performance logic, drop to NumPy arrays and use Numba/Cython/custom ufuncs
+  6) Use np.vectorize() for convenience, not speed
