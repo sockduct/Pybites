@@ -61,10 +61,12 @@ You'll need to refer to the docstrings and the tests to really fully understand
 the requirements.
 '''
 
+from collections import defaultdict
+
 import pandas as pd
 
 
-def series_simple_math(ser: pd.Series, function: str, number: int) -> pd.core.series.Series:
+def series_simple_math(ser: pd.Series, function: str, number: int) -> pd.Series:
     """Write some simple math helper functions for series.
     Take the given series, perform the required operation and return the new
     series.  For example. Give the series:
@@ -96,13 +98,10 @@ def series_simple_math(ser: pd.Series, function: str, number: int) -> pd.core.se
             raise ValueError(f'Expected function type of add/sub/mul/div, not:  {function}')
 
 
-def complex_series_maths(
-    ser_01: pd.Series, ser_02: pd.Series, function: str
-) -> pd.core.series.Series:
+def complex_series_maths(ser_01: pd.Series, ser_02: pd.Series, function: str) -> pd.Series:
     """Write some math helper functions for series.
-    Take the two given series, perfrom the required operation and
-        return the new series.
-    For example. Give the series:
+    Take the two given series, perform the required operation and return the new
+    series.  For example. Give the series:
         0    0
         1    1
         2    2
@@ -132,10 +131,20 @@ def complex_series_maths(
     Don't worry about None's and NaN and divide by zero.
         Let pandas do the work for you.
     """
-    pass
+    match function:
+        case 'add':
+            return ser_01 + ser_02
+        case 'sub':
+            return ser_01 + ser_02
+        case 'mul':
+            return ser_01 * ser_02
+        case 'div':
+            return ser_01 / ser_02
+        case _:
+            raise ValueError(f'Expected function type of add/sub/mul/div, not:  {function}')
 
 
-def create_series_mask(ser: pd.Series, mask: list) -> pd.core.series.Series:
+def create_series_mask(ser: pd.Series, mask: list) -> pd.Series:
     """Write a trivial function to create a pandas series mask of a list
     of letters.
     Be careful, although this sounds very similar to the .mask() method,
@@ -175,11 +184,12 @@ def create_series_mask(ser: pd.Series, mask: list) -> pd.core.series.Series:
     :param ser: Series to perform operation on
     :param mask: The list of letters to be masked
     """
-    pass
+    mapping = defaultdict(bool, dict.fromkeys(mask, True))
+    return ser.map(mapping)
 
 
 def custom_series_function(ser: pd.Series,
-                           within: float) -> pd.core.series.Series:
+                           within: float) -> pd.Series:
     """A more challenging mask to apply.
     When passed a series of floats, return all values
         within the given rage of:
