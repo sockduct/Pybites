@@ -175,7 +175,7 @@ def create_series_mask(ser: pd.Series, mask: list) -> pd.Series:
         dtype: int64
 
     Of course for simpler masks you can just do this:
-    >>> x[x %2 == 0]
+    >>> x[x % 2 == 0]
         0    0
         2    2
         4    4
@@ -188,8 +188,7 @@ def create_series_mask(ser: pd.Series, mask: list) -> pd.Series:
     return ser.map(mapping)
 
 
-def custom_series_function(ser: pd.Series,
-                           within: float) -> pd.Series:
+def custom_series_function(ser: pd.Series, within: float) -> pd.Series:
     """A more challenging mask to apply.
     When passed a series of floats, return all values
         within the given rage of:
@@ -200,13 +199,22 @@ def custom_series_function(ser: pd.Series,
          - the third quartile value
          - the maximum value
     You may want to brush up on some simple statistics to help you here.
-    Also, the series is passed to you sorted assending.
+    Also, the series is passed to you sorted ascending.
         Be sure that you don't return values out of sequence.
 
-    So, for example if you mean is 5.0 and within is 0.1
-        return all value between 4.9 and 5.1 inclusive
+    So, for example if your mean is 5.0 and within is 0.1
+        return all values between 4.9 and 5.1 inclusive
 
     :param ser: Series to perform operation on
     :param within: The value to calculate the range of number within
     """
-    pass
+    get_mask = lambda ser, loc, stats: ser.between(
+        stats.loc[loc] - within, stats.loc[loc] + within, inclusive='both'
+    )
+
+    stats = ser.describe()
+    final_mask = pd.Series(False, index=ser.index)
+    for mask in ('min', '25%', '50%', 'mean', '75%', 'max'):
+        final_mask = final_mask | get_mask(ser, mask, stats)
+
+    return ser[final_mask]
