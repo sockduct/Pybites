@@ -61,12 +61,16 @@ You'll need to refer to the docstrings and the tests to really fully understand
 the requirements.
 '''
 
+from __future__ import annotations
+
 from collections import defaultdict
+from collections.abc import Callable
 
 import pandas as pd
 
 
-def series_simple_math(ser: pd.Series, function: str, number: int) -> pd.Series:
+def series_simple_math(ser: pd.Series[int|float], function: str, number: int
+                       ) -> pd.Series[int|float]:
     """Write some simple math helper functions for series.
     Take the given series, perform the required operation and return the new
     series.  For example. Give the series:
@@ -98,7 +102,8 @@ def series_simple_math(ser: pd.Series, function: str, number: int) -> pd.Series:
             raise ValueError(f'Expected function type of add/sub/mul/div, not:  {function}')
 
 
-def complex_series_maths(ser_01: pd.Series, ser_02: pd.Series, function: str) -> pd.Series:
+def complex_series_maths(ser_01: pd.Series[int|float], ser_02: pd.Series[int|float],
+                         function: str) -> pd.Series[int|float]:
     """Write some math helper functions for series.
     Take the two given series, perform the required operation and return the new
     series.  For example. Give the series:
@@ -135,7 +140,7 @@ def complex_series_maths(ser_01: pd.Series, ser_02: pd.Series, function: str) ->
         case 'add':
             return ser_01 + ser_02
         case 'sub':
-            return ser_01 + ser_02
+            return ser_01 - ser_02
         case 'mul':
             return ser_01 * ser_02
         case 'div':
@@ -144,7 +149,7 @@ def complex_series_maths(ser_01: pd.Series, ser_02: pd.Series, function: str) ->
             raise ValueError(f'Expected function type of add/sub/mul/div, not:  {function}')
 
 
-def create_series_mask(ser: pd.Series, mask: list) -> pd.Series:
+def create_series_mask(ser: pd.Series[str], mask: list[str]) -> pd.Series[bool]:
     """Write a trivial function to create a pandas series mask of a list
     of letters.
     Be careful, although this sounds very similar to the .mask() method,
@@ -186,9 +191,12 @@ def create_series_mask(ser: pd.Series, mask: list) -> pd.Series:
     """
     mapping = defaultdict(bool, dict.fromkeys(mask, True))
     return ser.map(mapping)
+    #
+    # Better:
+    # return ser.isin(mask)
 
 
-def custom_series_function(ser: pd.Series, within: float) -> pd.Series:
+def custom_series_function(ser: pd.Series[int|float], within: float) -> pd.Series[int|float]:
     """A more challenging mask to apply.
     When passed a series of floats, return all values
         within the given rage of:
@@ -208,8 +216,10 @@ def custom_series_function(ser: pd.Series, within: float) -> pd.Series:
     :param ser: Series to perform operation on
     :param within: The value to calculate the range of number within
     """
-    get_mask = lambda ser, loc, stats: ser.between(
-        stats.loc[loc] - within, stats.loc[loc] + within, inclusive='both'
+    get_mask: Callable[[pd.Series[int|float], str, pd.Series[float]], pd.Series[bool]] = (
+        lambda ser, loc, stats: ser.between(
+            stats.loc[loc] - within, stats.loc[loc] + within, inclusive='both'
+        )
     )
 
     stats = ser.describe()
